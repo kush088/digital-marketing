@@ -53,7 +53,7 @@ export default function About() {
               </div>
               <div className="facts-row">
                 <dt>Focus</dt>
-                <dd>SEO • Meta Ads • Google Ads • Meta Ads</dd>
+                <dd>SEO • Content Marketing • Google Ads • Meta Ads</dd>
               </div>
 
               <div className="facts-row">
