@@ -180,7 +180,7 @@ export default function Contact() {
             htmlFor="message"
             className="field-label"
           >
-            What are you trying to move?
+            Share your project details, goals, and key requirements.
           </label>
 
           <textarea
@@ -191,7 +191,7 @@ export default function Contact() {
             value={form.message}
             onChange={handleChange}
             className="field"
-            placeholder="Traffic, conversion rate, retention…"
+            placeholder="Project details, goals, budget…"
           />
 
         </div>
