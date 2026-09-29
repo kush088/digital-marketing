@@ -65,7 +65,7 @@ export default function Contact() {
         </p>
 
         <h1 className="contact-headline">
-          Let’s Talk About Your Marketing Goals
+          Tell me about your project
         </h1>
 
         <p>

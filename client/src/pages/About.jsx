@@ -18,7 +18,7 @@ const approach = [
     step: "Execute",
     detail: "Put the strategy into action.",
   },
-   {
+  {
     step: "Measure",
     detail: "Track, learn, and improve.",
   },
@@ -32,13 +32,15 @@ export default function About() {
           <div>
             <p className="eyebrow">About</p>
             <h1 className="about-headline">
-            Kush Parekh
+              Kush Parekh
             </h1>
             <div className="about-copy">
               <p>
-                I’m building my experience through hands-on projects, marketing research, and real-world case studies while continuously developing my skills across different areas of digital marketing.
+                I’m a digital marketing enthusiast focused on building practical
+                experience through hands-on projects, marketing research, and
+                real-world case studies.
               </p>
-          
+
             </div>
           </div>
 
@@ -53,7 +55,7 @@ export default function About() {
                 <dt>Focus</dt>
                 <dd>SEO • Meta Ads • Google Ads • Meta Ads</dd>
               </div>
-              
+
               <div className="facts-row">
                 <dt>Availability</dt>
                 <dd className="text-success">Ready to create new projects</dd>
