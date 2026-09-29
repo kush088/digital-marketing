@@ -74,21 +74,7 @@ export default function Contact() {
           explore how I can help.
         </p>
 
-        <div className="contact-details">
-
-          <p>
-            kushparekh01@gmail.com
-          </p>
-
-          <p>
-            +91 9016480817
-          </p>
-
-          <p>
-            Surat, Gujarat, India
-          </p>
-
-        </div>
+       
 
       </div>
 
