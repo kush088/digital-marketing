@@ -1,0 +1,157 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-glow {
+  position: absolute;
+  right: -160px;
+  top: -160px;
+  height: 384px;
+  width: 384px;
+  border-radius: 50%;
+  background: var(--gradient);
+  opacity: 0.18;
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.hero-grid {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 64px 24px 80px;
+  display: grid;
+  gap: 48px;
+  position: relative;
+}
+
+.hero-headline {
+  margin-top: 16px;
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.hero-sub {
+  margin-top: 24px;
+  max-width: 480px;
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.hero-actions {
+  margin-top: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.hero-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stat-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+  background: var(--surface);
+  padding: 24px;
+}
+
+.stat-card:nth-child(2) {
+  margin-left: 32px;
+}
+
+.stat-value {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.stat-label {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.section-heading {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.services-grid {
+  margin-top: 40px;
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+  background: var(--surface-2);
+}
+
+.service-tile {
+  background: var(--surface);
+  padding: 32px;
+}
+
+.service-tile h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.service-tile p {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.work-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.work-header a {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.work-header a:hover {
+  color: var(--ink);
+}
+
+.work-grid {
+  margin-top: 40px;
+  display: grid;
+  gap: 24px;
+}
+
+.cta-section {
+  text-align: center;
+}
+
+.cta-section p {
+  margin: 12px auto 0;
+  max-width: 420px;
+  color: var(--muted);
+}
+
+.cta-section .btn {
+  margin-top: 32px;
+}
+
+@media (min-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 7fr 5fr;
+    padding-top: 96px;
+  }
+
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .work-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

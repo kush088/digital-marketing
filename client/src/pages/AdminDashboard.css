@@ -1,0 +1,185 @@
+.admin-header {
+  border-bottom: 1px solid var(--surface-2);
+}
+
+.admin-header-inner {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-title {
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.admin-main {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-toolbar h2 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.admin-toolbar h2 span {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.admin-table-wrap {
+  margin-top: 24px;
+  overflow: hidden;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.admin-table thead {
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 14px 20px;
+}
+
+.admin-table tbody tr {
+  border-top: 1px solid var(--surface-2);
+  background: var(--bg);
+}
+
+.admin-table td.actions {
+  text-align: right;
+}
+
+.admin-table .edit-link {
+  margin-right: 16px;
+  font-weight: 500;
+}
+
+.admin-table .edit-link:hover {
+  color: var(--violet);
+}
+
+.admin-table .delete-link {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.admin-table .delete-link:hover {
+  color: var(--amber);
+}
+
+.admin-table .empty-row {
+  text-align: center;
+  color: var(--muted);
+  padding: 32px 20px;
+}
+
+/* modal */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 40px 16px;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 640px;
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+  background: var(--surface);
+  padding: 32px;
+  height: fit-content;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.modal-header button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.modal-header button:hover {
+  color: var(--ink);
+}
+
+.modal-grid {
+  margin-top: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.modal-grid label {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.modal-grid .full {
+  grid-column: 1 / -1;
+}
+
+.modal-checkbox {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.modal-checkbox input {
+  accent-color: var(--violet);
+  width: 16px;
+  height: 16px;
+}
+
+.modal-panel .btn {
+  width: 100%;
+  margin-top: 32px;
+}
+
+@media (min-width: 640px) {
+  .modal-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

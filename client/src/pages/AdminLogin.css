@@ -1,0 +1,42 @@
+.admin-login-wrap {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+}
+
+.admin-login-form {
+  width: 100%;
+  max-width: 360px;
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+  background: var(--surface);
+  padding: 32px;
+}
+
+.admin-login-title {
+  margin-top: 8px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.admin-login-sub {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.admin-login-fields {
+  margin-top: 24px;
+}
+
+.admin-login-error {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.admin-login-form .btn {
+  width: 100%;
+  margin-top: 24px;
+}

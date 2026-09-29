@@ -1,0 +1,89 @@
+.about-hero {
+  display: grid;
+  gap: 48px;
+}
+
+.about-headline {
+  margin-top: 16px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.about-copy {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--muted);
+}
+
+.facts-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+  background: var(--surface);
+  padding: 32px;
+}
+
+.facts-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.facts-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.facts-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--surface-2);
+  padding-bottom: 12px;
+}
+
+.facts-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.facts-row dt {
+  color: var(--muted);
+}
+
+.approach-grid {
+  margin-top: 40px;
+  display: grid;
+  gap: 24px;
+}
+
+.approach-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-2);
+  background: var(--surface);
+  padding: 32px;
+}
+
+.approach-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.approach-card p {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+@media (min-width: 768px) {
+  .about-hero {
+    grid-template-columns: 7fr 5fr;
+  }
+
+  .approach-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
