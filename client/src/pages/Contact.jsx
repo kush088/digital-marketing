@@ -16,10 +16,6 @@ export default function Contact() {
   const [form, setForm] = useState(initialForm);
   const [status, setStatus] = useState("idle");
 
-  // --------------------------------------------------
-  // HANDLE INPUT CHANGE
-  // --------------------------------------------------
-
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -29,20 +25,17 @@ export default function Contact() {
     }));
   };
 
-  // --------------------------------------------------
-  // SUBMIT CONTACT FORM
-  // --------------------------------------------------
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     setStatus("sending");
 
     try {
-      await axios.post(`${apiBase}/contact`, form);
+      const response = await axios.post(`${apiBase}/contact`, form);
+
+      console.log("Contact response:", response.data);
 
       setStatus("sent");
-
       setForm(initialForm);
     } catch (error) {
       console.error("Contact form error:", error);
@@ -53,48 +46,28 @@ export default function Contact() {
 
   return (
     <div className="container contact-grid">
-
-      {/* --------------------------------------------------
-          CONTACT INTRO
-      -------------------------------------------------- */}
-
       <div className="contact-intro">
-
-        <p className="eyebrow">
-          Contact
-        </p>
+        <p className="eyebrow">Contact</p>
 
         <h1 className="contact-headline">
           Tell me about your project
         </h1>
 
         <p>
-          Have a project, business idea, or digital marketing
-          challenge? Tell me what you’re working on, and let’s
-          explore how I can help.
+          Have a project, business idea, or digital marketing challenge?
+          Tell me what you're working on, and let's explore how I can help.
         </p>
 
-       
-
+        <div className="contact-details">
+          <p>Think it.</p>
+          <p>Build it.</p>
+          <p>Grow it.</p>
+        </div>
       </div>
 
-      {/* --------------------------------------------------
-          CONTACT FORM
-      -------------------------------------------------- */}
-
-      <form
-        onSubmit={handleSubmit}
-        className="contact-form"
-      >
-
-        {/* NAME */}
-
+      <form onSubmit={handleSubmit} className="contact-form">
         <div className="field-group">
-
-          <label
-            htmlFor="name"
-            className="field-label"
-          >
+          <label htmlFor="name" className="field-label">
             Name
           </label>
 
@@ -108,17 +81,10 @@ export default function Contact() {
             className="field"
             placeholder="Your name"
           />
-
         </div>
 
-        {/* EMAIL */}
-
         <div className="field-group">
-
-          <label
-            htmlFor="email"
-            className="field-label"
-          >
+          <label htmlFor="email" className="field-label">
             Email
           </label>
 
@@ -130,19 +96,12 @@ export default function Contact() {
             value={form.email}
             onChange={handleChange}
             className="field"
-            placeholder="Enter your E-mail"
+            placeholder="Enter your email"
           />
-
         </div>
 
-        {/* BUDGET */}
-
         <div className="field-group">
-
-          <label
-            htmlFor="budget"
-            className="field-label"
-          >
+          <label htmlFor="budget" className="field-label">
             Monthly budget (optional)
           </label>
 
@@ -153,65 +112,47 @@ export default function Contact() {
             value={form.budget}
             onChange={handleChange}
             className="field"
-            placeholder="Rs:"
+            placeholder="e.g. ₹10,000 - ₹25,000"
           />
-
         </div>
 
-        {/* MESSAGE */}
-
         <div className="field-group">
-
-          <label
-            htmlFor="message"
-            className="field-label"
-          >
-            Share your project details, goals, and key requirements.
+          <label htmlFor="message" className="field-label">
+            Tell me about your project
           </label>
 
           <textarea
             id="message"
             name="message"
             required
-            rows={5}
+            rows={6}
             value={form.message}
             onChange={handleChange}
             className="field"
-            placeholder="Project details, goals, budget…"
+            placeholder="Project goals, requirements, timeline…"
           />
-
         </div>
-
-        {/* SUBMIT BUTTON */}
 
         <button
           type="submit"
           disabled={status === "sending"}
           className="btn btn-primary"
         >
-          {status === "sending"
-            ? "Sending..."
-            : "Send message"}
+          {status === "sending" ? "Sending..." : "Send message"}
         </button>
-
-        {/* SUCCESS MESSAGE */}
 
         {status === "sent" && (
           <p className="contact-form-message text-success">
-            Sent — I'll get back to you within two business days.
+            Message sent successfully. I'll get back to you soon.
           </p>
         )}
-
-        {/* ERROR MESSAGE */}
 
         {status === "error" && (
           <p className="contact-form-message text-error">
-            That didn't go through. Please try again.
+            Something went wrong. Please try again.
           </p>
         )}
-
       </form>
-
     </div>
   );
 }

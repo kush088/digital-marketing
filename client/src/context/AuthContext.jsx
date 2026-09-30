@@ -4,15 +4,14 @@ import React, {
   useEffect,
   useState,
 } from "react";
+
 import axios from "axios";
 
 const AuthContext = createContext(null);
 
-// Get API URL from Vite environment variable.
-// Falls back to localhost for local development.
-const API_BASE = (
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api"
-).replace(/\/$/, "");
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() =>
@@ -20,9 +19,9 @@ export function AuthProvider({ children }) {
   );
 
   const [admin, setAdmin] = useState(null);
+
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // CHECK EXISTING ADMIN LOGIN
   useEffect(() => {
     if (!token) {
       setCheckingAuth(false);
@@ -38,39 +37,32 @@ export function AuthProvider({ children }) {
       .then((res) => {
         setAdmin(res.data);
       })
-      .catch((error) => {
-        console.error("Authentication check failed:", error);
-
+      .catch(() => {
         localStorage.removeItem("kp_token");
         setToken(null);
-        setAdmin(null);
       })
       .finally(() => {
         setCheckingAuth(false);
       });
   }, [token]);
 
-  // ADMIN LOGIN
   const login = async (email, password) => {
-    try {
-      const res = await axios.post(`${API_BASE}/auth/login`, {
+    const res = await axios.post(
+      `${API_BASE}/auth/login`,
+      {
         email,
         password,
-      });
+      }
+    );
 
-      localStorage.setItem("kp_token", res.data.token);
+    localStorage.setItem("kp_token", res.data.token);
 
-      setToken(res.data.token);
-      setAdmin(res.data.admin);
+    setToken(res.data.token);
+    setAdmin(res.data.admin);
 
-      return res.data;
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
-    }
+    return res.data;
   };
 
-  // ADMIN LOGOUT
   const logout = () => {
     localStorage.removeItem("kp_token");
 
@@ -85,8 +77,6 @@ export function AuthProvider({ children }) {
     checkingAuth,
     login,
     logout,
-
-    // Used by Contact.jsx and other API requests
     apiBase: API_BASE,
   };
 
