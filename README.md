@@ -1,4 +1,4 @@
-# kushparekh — MERN Portfolio with Admin Panel
+# kushparekh — Digital marketing portfolio
 
 A full-stack portfolio site: public pages (Home, About, Projects, Project Detail, Contact)
 plus a password-protected admin panel to create/edit/delete projects, upload images,
