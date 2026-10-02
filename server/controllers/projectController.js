@@ -16,37 +16,63 @@ export const getProjects = async (req, res) => {
 export const getProjectById = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
     res.json(project);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-// POST /api/projects  (admin, multipart/form-data)
+// POST /api/projects (admin, multipart/form-data)
 export const createProject = async (req, res) => {
   try {
-    const { title, description, techStack, githubLink, liveLink, featured, order } = req.body;
+    const {
+      title,
+      description,
+      category,
+      techStack,
+      githubLink,
+      liveLink,
+      featured,
+      order,
+    } = req.body;
 
-    const images = (req.files?.images || []).map((f) => `/uploads/${f.filename}`);
+    const images = (req.files?.images || []).map(
+      (f) => `/uploads/${f.filename}`
+    );
+
     const downloadFileObj = req.files?.downloadFile?.[0];
 
     const project = await Project.create({
       title,
       description,
-      techStack: techStack ? techStack.split(",").map((t) => t.trim()) : [],
+      category,
+      techStack: techStack
+        ? techStack.split(",").map((t) => t.trim())
+        : [],
       githubLink,
       liveLink,
       images,
-      downloadFile: downloadFileObj ? `/uploads/${downloadFileObj.filename}` : undefined,
-      downloadFileName: downloadFileObj ? downloadFileObj.originalname : undefined,
+      downloadFile: downloadFileObj
+        ? `/uploads/${downloadFileObj.filename}`
+        : undefined,
+      downloadFileName: downloadFileObj
+        ? downloadFileObj.originalname
+        : undefined,
       featured: featured === "true",
       order: order ? Number(order) : 0,
     });
 
     res.status(201).json(project);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
@@ -54,47 +80,98 @@ export const createProject = async (req, res) => {
 export const updateProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ message: "Project not found" });
 
-    const { title, description, techStack, githubLink, liveLink, featured, order, removeImages } = req.body;
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const {
+      title,
+      description,
+      category,
+      techStack,
+      githubLink,
+      liveLink,
+      featured,
+      order,
+      removeImages,
+    } = req.body;
 
     if (title !== undefined) project.title = title;
+
     if (description !== undefined) project.description = description;
-    if (techStack !== undefined) project.techStack = techStack.split(",").map((t) => t.trim());
+
+    if (category !== undefined) project.category = category;
+
+    if (techStack !== undefined) {
+      project.techStack = techStack
+        .split(",")
+        .map((t) => t.trim());
+    }
+
     if (githubLink !== undefined) project.githubLink = githubLink;
+
     if (liveLink !== undefined) project.liveLink = liveLink;
-    if (featured !== undefined) project.featured = featured === "true";
-    if (order !== undefined) project.order = Number(order);
+
+    if (featured !== undefined) {
+      project.featured = featured === "true";
+    }
+
+    if (order !== undefined) {
+      project.order = Number(order);
+    }
 
     // Remove selected existing images
     if (removeImages) {
-      const toRemove = JSON.parse(removeImages); // array of image paths
+      const toRemove = JSON.parse(removeImages);
+
       toRemove.forEach((imgPath) => {
         const filePath = path.join(process.cwd(), imgPath);
-        fs.existsSync(filePath) && fs.unlinkSync(filePath);
+
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
       });
-      project.images = project.images.filter((img) => !toRemove.includes(img));
+
+      project.images = project.images.filter(
+        (img) => !toRemove.includes(img)
+      );
     }
 
     // Add newly uploaded images
-    const newImages = (req.files?.images || []).map((f) => `/uploads/${f.filename}`);
+    const newImages = (req.files?.images || []).map(
+      (f) => `/uploads/${f.filename}`
+    );
+
     project.images = [...project.images, ...newImages];
 
     // Replace download file if a new one was uploaded
     const downloadFileObj = req.files?.downloadFile?.[0];
+
     if (downloadFileObj) {
       if (project.downloadFile) {
-        const oldPath = path.join(process.cwd(), project.downloadFile);
-        fs.existsSync(oldPath) && fs.unlinkSync(oldPath);
+        const oldPath = path.join(
+          process.cwd(),
+          project.downloadFile
+        );
+
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
       }
+
       project.downloadFile = `/uploads/${downloadFileObj.filename}`;
       project.downloadFileName = downloadFileObj.originalname;
     }
 
     await project.save();
+
     res.json(project);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
@@ -102,17 +179,29 @@ export const updateProject = async (req, res) => {
 export const deleteProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) return res.status(404).json({ message: "Project not found" });
 
-    [...project.images, project.downloadFile].filter(Boolean).forEach((filePath) => {
-      const fullPath = path.join(process.cwd(), filePath);
-      fs.existsSync(fullPath) && fs.unlinkSync(fullPath);
-    });
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    [...project.images, project.downloadFile]
+      .filter(Boolean)
+      .forEach((filePath) => {
+        const fullPath = path.join(process.cwd(), filePath);
+
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      });
 
     await project.deleteOne();
+
     res.json({ message: "Project deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
@@ -120,15 +209,29 @@ export const deleteProject = async (req, res) => {
 export const downloadProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
+
     if (!project || !project.downloadFile) {
-      return res.status(404).json({ message: "No downloadable file for this project" });
+      return res.status(404).json({
+        message: "No downloadable file for this project",
+      });
     }
+
     const filePath = path.join(process.cwd(), project.downloadFile);
+
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: "File missing on server" });
+      return res.status(404).json({
+        message: "File missing on server",
+      });
     }
-    res.download(filePath, project.downloadFileName || path.basename(filePath));
+
+    res.download(
+      filePath,
+      project.downloadFileName || path.basename(filePath)
+    );
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
