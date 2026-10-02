@@ -130,7 +130,7 @@ export default function Home() {
               ✹
             </span>
 
-            <span className="marquee-outline">
+            <span className="marquee-highlight">
               REACH THE RIGHT AUDIENCE
             </span>
 

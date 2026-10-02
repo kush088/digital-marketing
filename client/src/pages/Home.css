@@ -1,4 +1,3 @@
-
 /* =========================================================
    HERO
    ========================================================= */
@@ -321,39 +320,167 @@
   font-weight: 700;
 }
 
+
+/* =========================================================
+   SERVICE GRID
+   ========================================================= */
+
 .services-grid {
   margin-top: 40px;
 
   display: grid;
 
-  gap: 1px;
+  grid-template-columns: repeat(2, 1fr);
 
-  overflow: hidden;
+  gap: 18px;
+}
 
-  border-radius: var(--radius);
+
+/* =========================================================
+   SERVICE CARD
+   ========================================================= */
+
+.service-tile {
+  position: relative;
+
+  padding: 28px;
+
+  min-height: 150px;
 
   border: 1px solid var(--surface-2);
 
-  background: var(--surface-2);
-}
-
-.service-tile {
-  padding: 32px;
+  border-radius: var(--radius);
 
   background: var(--surface);
+
+  overflow: hidden;
+
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
+
+
+/* Subtle blue accent */
+
+.service-tile::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 4px;
+  height: 100%;
+
+  background: linear-gradient(
+    180deg,
+    #38bdf8,
+    #6366f1
+  );
+
+  opacity: 0.7;
+
+  transition:
+    opacity 0.25s ease,
+    width 0.25s ease;
+}
+
+
+/* Soft background glow */
+
+.service-tile::after {
+  content: "";
+
+  position: absolute;
+
+  right: -70px;
+  bottom: -70px;
+
+  width: 160px;
+  height: 160px;
+
+  border-radius: 50%;
+
+  background: rgba(56, 189, 248, 0.06);
+
+  filter: blur(35px);
+
+  opacity: 0;
+
+  transition: opacity 0.3s ease;
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   SERVICE TITLE
+   ========================================================= */
 
 .service-tile h3 {
+  position: relative;
+
+  z-index: 1;
+
+  margin: 0;
+
+  padding-left: 6px;
+
   font-size: 18px;
+
   font-weight: 700;
+
+  line-height: 1.3;
+
+  color: var(--ink);
 }
 
+
+/* =========================================================
+   SERVICE DESCRIPTION
+   ========================================================= */
+
 .service-tile p {
-  margin-top: 8px;
+  position: relative;
+
+  z-index: 1;
+
+  margin-top: 10px;
+
+  padding-left: 6px;
 
   font-size: 14px;
 
+  line-height: 1.6;
+
   color: var(--muted);
+}
+
+
+/* =========================================================
+   SERVICE CARD HOVER
+   ========================================================= */
+
+.service-tile:hover {
+  transform: translateY(-4px);
+
+  border-color: rgba(56, 189, 248, 0.35);
+
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.service-tile:hover::before {
+  width: 5px;
+
+  opacity: 1;
+}
+
+.service-tile:hover::after {
+  opacity: 1;
 }
 
 
@@ -486,8 +613,16 @@
 
   /* Services */
 
+  .services-grid {
+    grid-template-columns: 1fr;
+
+    gap: 14px;
+  }
+
   .service-tile {
     padding: 24px;
+
+    min-height: auto;
   }
 
   .work-header {
@@ -503,8 +638,9 @@
 @media (prefers-reduced-motion: reduce) {
   .growth-marquee-track,
   .marquee-text,
-  .marquee-highlight {
+  .marquee-highlight,
+  .service-tile {
     animation: none;
+    transition: none;
   }
 }
-
