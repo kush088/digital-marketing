@@ -1,12 +1,23 @@
 import Project from "../models/Project.js";
 import imagekit from "../config/imagekit.js";
+import { toFile } from "@imagekit/nodejs";
 
+// =========================================
 // Upload a file to ImageKit
+// =========================================
+
 const uploadToImageKit = async (file, folder) => {
-  if (!file) return null;
+  if (!file || !file.buffer) {
+    return null;
+  }
+
+  const imageKitFile = await toFile(
+    file.buffer,
+    file.originalname
+  );
 
   const response = await imagekit.files.upload({
-    file: file.buffer,
+    file: imageKitFile,
     fileName: file.originalname,
     folder,
   });
@@ -18,7 +29,10 @@ const uploadToImageKit = async (file, folder) => {
   };
 };
 
+// =========================================
 // GET /api/projects
+// =========================================
+
 export const getProjects = async (req, res) => {
   try {
     const projects = await Project.find().sort({
@@ -35,7 +49,10 @@ export const getProjects = async (req, res) => {
   }
 };
 
+// =========================================
 // GET /api/projects/:id
+// =========================================
+
 export const getProjectById = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -55,7 +72,10 @@ export const getProjectById = async (req, res) => {
   }
 };
 
+// =========================================
 // POST /api/projects
+// =========================================
+
 export const createProject = async (req, res) => {
   try {
     const {
@@ -69,9 +89,11 @@ export const createProject = async (req, res) => {
       order,
     } = req.body;
 
+    // -----------------------------------------
     // Upload project images to ImageKit
-    const imageFiles = req.files?.images || [];
+    // -----------------------------------------
 
+    const imageFiles = req.files?.images || [];
     const uploadedImages = [];
 
     for (const file of imageFiles) {
@@ -85,7 +107,10 @@ export const createProject = async (req, res) => {
       }
     }
 
-    // Upload case study/download file to ImageKit
+    // -----------------------------------------
+    // Upload case study to ImageKit
+    // -----------------------------------------
+
     const downloadFileObj =
       req.files?.downloadFile?.[0];
 
@@ -93,10 +118,11 @@ export const createProject = async (req, res) => {
     let downloadFileName;
 
     if (downloadFileObj) {
-      const uploadedDownload = await uploadToImageKit(
-        downloadFileObj,
-        "/kushparekh-portfolio/case-studies"
-      );
+      const uploadedDownload =
+        await uploadToImageKit(
+          downloadFileObj,
+          "/kushparekh-portfolio/case-studies"
+        );
 
       if (uploadedDownload) {
         downloadFileUrl = uploadedDownload.url;
@@ -104,6 +130,10 @@ export const createProject = async (req, res) => {
           downloadFileObj.originalname;
       }
     }
+
+    // -----------------------------------------
+    // Create project
+    // -----------------------------------------
 
     const project = await Project.create({
       title,
@@ -141,7 +171,10 @@ export const createProject = async (req, res) => {
   }
 };
 
+// =========================================
 // PUT /api/projects/:id
+// =========================================
+
 export const updateProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -163,6 +196,10 @@ export const updateProject = async (req, res) => {
       order,
       removeImages,
     } = req.body;
+
+    // -----------------------------------------
+    // Update basic fields
+    // -----------------------------------------
 
     if (title !== undefined) {
       project.title = title;
@@ -199,20 +236,31 @@ export const updateProject = async (req, res) => {
       project.order = Number(order);
     }
 
-    // Remove selected existing images
-    //
-    // Existing ImageKit images cannot be removed
-    // from the old local filesystem anymore.
-    // We only remove their URLs from MongoDB.
-    if (removeImages) {
-      const toRemove = JSON.parse(removeImages);
+    // -----------------------------------------
+    // Remove selected images
+    // -----------------------------------------
 
-      project.images = project.images.filter(
-        (img) => !toRemove.includes(img)
-      );
+    if (removeImages) {
+      try {
+        const toRemove = JSON.parse(removeImages);
+
+        if (Array.isArray(toRemove)) {
+          project.images = project.images.filter(
+            (img) => !toRemove.includes(img)
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Invalid removeImages value:",
+          error
+        );
+      }
     }
 
-    // Upload newly added images to ImageKit
+    // -----------------------------------------
+    // Upload newly added images
+    // -----------------------------------------
+
     const newImageFiles =
       req.files?.images || [];
 
@@ -236,7 +284,10 @@ export const updateProject = async (req, res) => {
       ];
     }
 
-    // Replace download/case-study file
+    // -----------------------------------------
+    // Replace case study
+    // -----------------------------------------
+
     const downloadFileObj =
       req.files?.downloadFile?.[0];
 
@@ -256,6 +307,10 @@ export const updateProject = async (req, res) => {
       }
     }
 
+    // -----------------------------------------
+    // Save project
+    // -----------------------------------------
+
     await project.save();
 
     res.json(project);
@@ -269,10 +324,15 @@ export const updateProject = async (req, res) => {
   }
 };
 
+// =========================================
 // DELETE /api/projects/:id
+// =========================================
+
 export const deleteProject = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findById(
+      req.params.id
+    );
 
     if (!project) {
       return res.status(404).json({
@@ -281,13 +341,11 @@ export const deleteProject = async (req, res) => {
     }
 
     /*
-      The files are stored on ImageKit.
+      Project files are stored on ImageKit.
 
-      We intentionally do not use fs.unlinkSync()
-      here because the files are no longer stored
-      in Render's local uploads folder.
-
-      The MongoDB project record is deleted.
+      We delete the MongoDB project record here.
+      The ImageKit files are not deleted from the
+      local Render/server filesystem.
     */
 
     await project.deleteOne();
@@ -305,21 +363,30 @@ export const deleteProject = async (req, res) => {
   }
 };
 
+// =========================================
 // GET /api/projects/:id/download
+// =========================================
+
 export const downloadProject = async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findById(
+      req.params.id
+    );
 
     if (!project || !project.downloadFile) {
       return res.status(404).json({
-        message: "No downloadable file for this project",
+        message:
+          "No downloadable file for this project",
       });
     }
 
-    // ImageKit URL
+    // Redirect directly to ImageKit
     res.redirect(project.downloadFile);
   } catch (err) {
-    console.error("Download project error:", err);
+    console.error(
+      "Download project error:",
+      err
+    );
 
     res.status(500).json({
       message: "Server error",
