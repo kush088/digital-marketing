@@ -43,7 +43,7 @@ export default function About() {
           </div>
 
           <div className="facts-card">
-            <p className="facts-title">Quick facts</p>
+            <p className="facts-title">My Digital Edge</p>
             <dl className="facts-list">
               <div className="facts-row">
                 <dt>Based in</dt>
@@ -56,7 +56,7 @@ export default function About() {
 
               <div className="facts-row">
                 <dt>Availability</dt>
-                <dd className="text-success">Ready to create new projects</dd>
+                <dd className="text-success">Open for new projects</dd>
               </div>
             </dl>
           </div>
