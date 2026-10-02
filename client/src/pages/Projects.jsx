@@ -30,7 +30,7 @@ export default function Projects() {
     <div className="container projects-page">
       <p className="eyebrow">Work</p>
       <h1 className="projects-title">
-        Research. Strategy. Digital Growth.
+        See How I Build Digital Growth 📈
       </h1>
 
       <div className="filter-row">

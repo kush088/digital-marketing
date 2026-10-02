@@ -1,3 +1,8 @@
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
 .hero {
   position: relative;
   overflow: hidden;
@@ -7,8 +12,8 @@
   position: absolute;
   right: -160px;
   top: -160px;
-  height: 384px;
   width: 384px;
+  height: 384px;
   border-radius: 50%;
   background: var(--gradient);
   opacity: 0.18;
@@ -17,12 +22,12 @@
 }
 
 .hero-grid {
+  position: relative;
   max-width: 1152px;
   margin: 0 auto;
   padding: 64px 24px 80px;
   display: grid;
   gap: 48px;
-  position: relative;
 }
 
 .hero-headline {
@@ -33,8 +38,8 @@
 }
 
 .hero-sub {
-  margin-top: 24px;
   max-width: 480px;
+  margin-top: 24px;
   font-size: 18px;
   color: var(--muted);
 }
@@ -53,10 +58,10 @@
 }
 
 .stat-card {
+  padding: 24px;
   border-radius: var(--radius);
   border: 1px solid var(--surface-2);
   background: var(--surface);
-  padding: 24px;
 }
 
 .stat-card:nth-child(2) {
@@ -74,6 +79,243 @@
   color: var(--muted);
 }
 
+
+/* =========================================================
+   GROWTH MARQUEE
+   ========================================================= */
+
+.growth-marquee {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+
+  padding: 14px 0;
+
+  border-top: 1px solid var(--surface-2);
+  border-bottom: 1px solid var(--surface-2);
+
+  background: var(--surface);
+
+  white-space: nowrap;
+}
+
+
+/* Soft blue glow */
+
+.growth-marquee::before {
+  content: "";
+
+  position: absolute;
+
+  top: 50%;
+  left: 25%;
+
+  width: 300px;
+  height: 60px;
+
+  transform: translateY(-50%);
+
+  background: linear-gradient(
+    90deg,
+    #2563eb,
+    #06b6d4,
+    #6366f1
+  );
+
+  opacity: 0.08;
+
+  filter: blur(40px);
+
+  pointer-events: none;
+}
+
+
+/* Moving track */
+
+.growth-marquee-track {
+  display: flex;
+
+  width: max-content;
+
+  animation: growthMarquee 24s linear infinite;
+
+  will-change: transform;
+}
+
+
+/* Repeated content */
+
+.growth-marquee-content {
+  display: flex;
+
+  align-items: center;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MARQUEE TEXT
+   ========================================================= */
+
+.marquee-text {
+  display: inline-block;
+
+  margin-right: 22px;
+
+  font-size: 18px;
+
+  font-weight: 700;
+
+  line-height: 1;
+
+  letter-spacing: -0.01em;
+
+  background: linear-gradient(
+    90deg,
+    #60a5fa,
+    #38bdf8,
+    #818cf8
+  );
+
+  background-size: 200% auto;
+
+  background-clip: text;
+
+  -webkit-background-clip: text;
+
+  color: transparent;
+
+  animation: blueGradient 5s linear infinite;
+}
+
+
+/* =========================================================
+   ✹ SYMBOL
+   ========================================================= */
+
+.marquee-symbol {
+  display: inline-block;
+
+  margin-right: 22px;
+
+  font-size: 16px;
+
+  font-weight: 900;
+
+  color: #38bdf8;
+
+  text-shadow:
+    0 0 6px rgba(56, 189, 248, 0.8),
+    0 0 12px rgba(37, 99, 235, 0.5);
+}
+
+
+/* =========================================================
+   OUTLINE TEXT
+   ========================================================= */
+
+.marquee-outline {
+  display: inline-block;
+
+  margin-right: 22px;
+
+  font-size: 18px;
+
+  font-weight: 700;
+
+  line-height: 1;
+
+  letter-spacing: -0.01em;
+
+  color: transparent;
+
+  -webkit-text-stroke: 0.8px #60a5fa;
+
+  text-shadow:
+    0 0 8px rgba(96, 165, 250, 0.15);
+}
+
+
+/* =========================================================
+   HIGHLIGHT TEXT
+   ========================================================= */
+
+.marquee-highlight {
+  display: inline-block;
+
+  margin-right: 22px;
+
+  font-size: 18px;
+
+  font-weight: 700;
+
+  line-height: 1;
+
+  letter-spacing: -0.01em;
+
+  background: linear-gradient(
+    90deg,
+    #38bdf8,
+    #6366f1,
+    #a78bfa
+  );
+
+  background-size: 200% auto;
+
+  background-clip: text;
+
+  -webkit-background-clip: text;
+
+  color: transparent;
+
+  animation: blueGradient 4s linear infinite;
+}
+
+
+/* =========================================================
+   MARQUEE ANIMATION
+   ========================================================= */
+
+@keyframes growthMarquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes blueGradient {
+  from {
+    background-position: 0% center;
+  }
+
+  to {
+    background-position: 200% center;
+  }
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+.growth-marquee:hover .growth-marquee-track {
+  animation-play-state: paused;
+}
+
+.growth-marquee:hover .marquee-text,
+.growth-marquee:hover .marquee-highlight {
+  animation-play-state: paused;
+}
+
+
+/* =========================================================
+   SERVICES
+   ========================================================= */
+
 .section-heading {
   font-size: 24px;
   font-weight: 700;
@@ -81,17 +323,24 @@
 
 .services-grid {
   margin-top: 40px;
+
   display: grid;
+
   gap: 1px;
+
   overflow: hidden;
+
   border-radius: var(--radius);
+
   border: 1px solid var(--surface-2);
+
   background: var(--surface-2);
 }
 
 .service-tile {
-  background: var(--surface);
   padding: 32px;
+
+  background: var(--surface);
 }
 
 .service-tile h3 {
@@ -101,19 +350,30 @@
 
 .service-tile p {
   margin-top: 8px;
+
   font-size: 14px;
+
   color: var(--muted);
 }
 
+
+/* =========================================================
+   RECENT WORK
+   ========================================================= */
+
 .work-header {
   display: flex;
+
   align-items: flex-end;
+
   justify-content: space-between;
 }
 
 .work-header a {
   font-size: 14px;
+
   font-weight: 500;
+
   color: var(--muted);
 }
 
@@ -123,17 +383,26 @@
 
 .work-grid {
   margin-top: 40px;
+
   display: grid;
+
   gap: 24px;
 }
+
+
+/* =========================================================
+   CTA
+   ========================================================= */
 
 .cta-section {
   text-align: center;
 }
 
 .cta-section p {
-  margin: 12px auto 0;
   max-width: 420px;
+
+  margin: 12px auto 0;
+
   color: var(--muted);
 }
 
@@ -141,9 +410,15 @@
   margin-top: 32px;
 }
 
+
+/* =========================================================
+   TABLET / DESKTOP
+   ========================================================= */
+
 @media (min-width: 768px) {
   .hero-grid {
     grid-template-columns: 7fr 5fr;
+
     padding-top: 96px;
   }
 
@@ -155,3 +430,81 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+  .hero-grid {
+    padding: 48px 20px 60px;
+  }
+
+  .hero-headline {
+    font-size: 32px;
+  }
+
+  .hero-sub {
+    font-size: 16px;
+  }
+
+  .stat-card:nth-child(2) {
+    margin-left: 0;
+  }
+
+
+  /* Small marquee */
+
+  .growth-marquee {
+    padding: 11px 0;
+  }
+
+  .growth-marquee-track {
+    animation-duration: 19s;
+  }
+
+  .marquee-text,
+  .marquee-outline,
+  .marquee-highlight {
+    margin-right: 18px;
+
+    font-size: 15px;
+  }
+
+  .marquee-symbol {
+    margin-right: 18px;
+
+    font-size: 14px;
+  }
+
+  .marquee-outline {
+    -webkit-text-stroke: 0.7px #60a5fa;
+  }
+
+
+  /* Services */
+
+  .service-tile {
+    padding: 24px;
+  }
+
+  .work-header {
+    align-items: center;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .growth-marquee-track,
+  .marquee-text,
+  .marquee-highlight {
+    animation: none;
+  }
+}
+

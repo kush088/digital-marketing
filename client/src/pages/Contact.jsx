@@ -50,18 +50,19 @@ export default function Contact() {
         <p className="eyebrow">Contact</p>
 
         <h1 className="contact-headline">
-          Tell me about your project
+          Let’s Grow Your Brand
         </h1>
 
         <p>
-          Have a project, business idea, or digital marketing challenge?
-          Tell me what you're working on, and let's explore how I can help.
+          Have a business, brand, or marketing goal in mind? Let’s turn your ideas into a digital strategy that reaches the right audience
+
+          Let’s talk about your goals and explore what we can achieve together.
         </p>
 
         <div className="contact-details">
-          <p>Think it.</p>
-          <p>Build it.</p>
-          <p>Grow it.</p>
+          <p>🎯 Strategy.</p>
+          <p>💡 Creativity.</p>
+          <p>📈 Growth.</p>
         </div>
       </div>
 

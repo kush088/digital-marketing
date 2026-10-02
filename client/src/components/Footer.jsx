@@ -9,9 +9,9 @@ export default function Footer() {
       <div className="footer-rule" />
       <div className="footer-grid">
         <div className="footer-brand">
-          <p>Kush Parekh</p>
+          <p>Built for Growth</p>
           <p>
-            Digital Marketer focused on SEO, content, paid media, and strategies that help brands grow online.
+            Digital Marketer helping brands reach the right audience and grow online.
           </p>
         </div>
 

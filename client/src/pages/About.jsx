@@ -36,9 +36,7 @@ export default function About() {
             </h1>
             <div className="about-copy">
               <p>
-                I’m a digital marketing enthusiast focused on building practical
-                experience through hands-on projects, marketing research, and
-                real-world case studies.
+                I’m a digital marketing enthusiast focused on helping brands grow their online presence through SEO, Google Ads, Meta Ads, content marketing, and data-driven strategies.
               </p>
 
             </div>
@@ -53,7 +51,7 @@ export default function About() {
               </div>
               <div className="facts-row">
                 <dt>Focus</dt>
-                <dd>SEO • Content Marketing • Google Ads • Meta Ads</dd>
+                <dd>SEO • Google Ads • Meta Ads</dd>
               </div>
 
               <div className="facts-row">
