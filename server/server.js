@@ -1,6 +1,7 @@
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -8,8 +9,6 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
-
-dotenv.config();
 
 connectDB();
 
@@ -30,15 +29,14 @@ app.use(
 
 app.use(express.json());
 
+// Keep this for old/local uploaded files
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"))
 );
 
 app.use("/api/auth", authRoutes);
-
 app.use("/api/projects", projectRoutes);
-
 app.use("/api/contact", contactRoutes);
 
 app.get("/api/health", (req, res) => {
@@ -48,12 +46,17 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-const clientDistPath = path.join(__dirname, "../client/dist");
+const clientDistPath = path.join(
+  __dirname,
+  "../client/dist"
+);
 
 app.use(express.static(clientDistPath));
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(clientDistPath, "index.html"));
+  res.sendFile(
+    path.join(clientDistPath, "index.html")
+  );
 });
 
 app.use((err, req, res, next) => {

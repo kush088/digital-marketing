@@ -1,14 +1,37 @@
-import path from "path";
-import fs from "fs";
 import Project from "../models/Project.js";
+import imagekit from "../config/imagekit.js";
+
+// Upload a file to ImageKit
+const uploadToImageKit = async (file, folder) => {
+  if (!file) return null;
+
+  const response = await imagekit.files.upload({
+    file: file.buffer,
+    fileName: file.originalname,
+    folder,
+  });
+
+  return {
+    url: response.url,
+    fileId: response.fileId,
+    fileName: response.name,
+  };
+};
 
 // GET /api/projects
 export const getProjects = async (req, res) => {
   try {
-    const projects = await Project.find().sort({ order: 1, createdAt: -1 });
+    const projects = await Project.find().sort({
+      order: 1,
+      createdAt: -1,
+    });
+
     res.json(projects);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
@@ -18,16 +41,21 @@ export const getProjectById = async (req, res) => {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
-      return res.status(404).json({ message: "Project not found" });
+      return res.status(404).json({
+        message: "Project not found",
+      });
     }
 
     res.json(project);
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
-// POST /api/projects (admin, multipart/form-data)
+// POST /api/projects
 export const createProject = async (req, res) => {
   try {
     const {
@@ -41,34 +69,71 @@ export const createProject = async (req, res) => {
       order,
     } = req.body;
 
-    const images = (req.files?.images || []).map(
-      (f) => `/uploads/${f.filename}`
-    );
+    // Upload project images to ImageKit
+    const imageFiles = req.files?.images || [];
 
-    const downloadFileObj = req.files?.downloadFile?.[0];
+    const uploadedImages = [];
+
+    for (const file of imageFiles) {
+      const uploaded = await uploadToImageKit(
+        file,
+        "/kushparekh-portfolio/projects"
+      );
+
+      if (uploaded) {
+        uploadedImages.push(uploaded.url);
+      }
+    }
+
+    // Upload case study/download file to ImageKit
+    const downloadFileObj =
+      req.files?.downloadFile?.[0];
+
+    let downloadFileUrl;
+    let downloadFileName;
+
+    if (downloadFileObj) {
+      const uploadedDownload = await uploadToImageKit(
+        downloadFileObj,
+        "/kushparekh-portfolio/case-studies"
+      );
+
+      if (uploadedDownload) {
+        downloadFileUrl = uploadedDownload.url;
+        downloadFileName =
+          downloadFileObj.originalname;
+      }
+    }
 
     const project = await Project.create({
       title,
       description,
       category,
+
       techStack: techStack
-        ? techStack.split(",").map((t) => t.trim())
+        ? techStack
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
         : [],
+
       githubLink,
       liveLink,
-      images,
-      downloadFile: downloadFileObj
-        ? `/uploads/${downloadFileObj.filename}`
-        : undefined,
-      downloadFileName: downloadFileObj
-        ? downloadFileObj.originalname
-        : undefined,
+
+      images: uploadedImages,
+
+      downloadFile: downloadFileUrl,
+      downloadFileName,
+
       featured: featured === "true",
+
       order: order ? Number(order) : 0,
     });
 
     res.status(201).json(project);
   } catch (err) {
+    console.error("Create project error:", err);
+
     res.status(500).json({
       message: "Server error",
       error: err.message,
@@ -76,13 +141,15 @@ export const createProject = async (req, res) => {
   }
 };
 
-// PUT /api/projects/:id (admin, multipart/form-data)
+// PUT /api/projects/:id
 export const updateProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
-      return res.status(404).json({ message: "Project not found" });
+      return res.status(404).json({
+        message: "Project not found",
+      });
     }
 
     const {
@@ -97,21 +164,32 @@ export const updateProject = async (req, res) => {
       removeImages,
     } = req.body;
 
-    if (title !== undefined) project.title = title;
+    if (title !== undefined) {
+      project.title = title;
+    }
 
-    if (description !== undefined) project.description = description;
+    if (description !== undefined) {
+      project.description = description;
+    }
 
-    if (category !== undefined) project.category = category;
+    if (category !== undefined) {
+      project.category = category;
+    }
 
     if (techStack !== undefined) {
       project.techStack = techStack
         .split(",")
-        .map((t) => t.trim());
+        .map((t) => t.trim())
+        .filter(Boolean);
     }
 
-    if (githubLink !== undefined) project.githubLink = githubLink;
+    if (githubLink !== undefined) {
+      project.githubLink = githubLink;
+    }
 
-    if (liveLink !== undefined) project.liveLink = liveLink;
+    if (liveLink !== undefined) {
+      project.liveLink = liveLink;
+    }
 
     if (featured !== undefined) {
       project.featured = featured === "true";
@@ -122,52 +200,68 @@ export const updateProject = async (req, res) => {
     }
 
     // Remove selected existing images
+    //
+    // Existing ImageKit images cannot be removed
+    // from the old local filesystem anymore.
+    // We only remove their URLs from MongoDB.
     if (removeImages) {
       const toRemove = JSON.parse(removeImages);
-
-      toRemove.forEach((imgPath) => {
-        const filePath = path.join(process.cwd(), imgPath);
-
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      });
 
       project.images = project.images.filter(
         (img) => !toRemove.includes(img)
       );
     }
 
-    // Add newly uploaded images
-    const newImages = (req.files?.images || []).map(
-      (f) => `/uploads/${f.filename}`
-    );
+    // Upload newly added images to ImageKit
+    const newImageFiles =
+      req.files?.images || [];
 
-    project.images = [...project.images, ...newImages];
+    if (newImageFiles.length > 0) {
+      const newImages = [];
 
-    // Replace download file if a new one was uploaded
-    const downloadFileObj = req.files?.downloadFile?.[0];
-
-    if (downloadFileObj) {
-      if (project.downloadFile) {
-        const oldPath = path.join(
-          process.cwd(),
-          project.downloadFile
+      for (const file of newImageFiles) {
+        const uploaded = await uploadToImageKit(
+          file,
+          "/kushparekh-portfolio/projects"
         );
 
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
+        if (uploaded) {
+          newImages.push(uploaded.url);
         }
       }
 
-      project.downloadFile = `/uploads/${downloadFileObj.filename}`;
-      project.downloadFileName = downloadFileObj.originalname;
+      project.images = [
+        ...project.images,
+        ...newImages,
+      ];
+    }
+
+    // Replace download/case-study file
+    const downloadFileObj =
+      req.files?.downloadFile?.[0];
+
+    if (downloadFileObj) {
+      const uploadedDownload =
+        await uploadToImageKit(
+          downloadFileObj,
+          "/kushparekh-portfolio/case-studies"
+        );
+
+      if (uploadedDownload) {
+        project.downloadFile =
+          uploadedDownload.url;
+
+        project.downloadFileName =
+          downloadFileObj.originalname;
+      }
     }
 
     await project.save();
 
     res.json(project);
   } catch (err) {
+    console.error("Update project error:", err);
+
     res.status(500).json({
       message: "Server error",
       error: err.message,
@@ -175,29 +269,35 @@ export const updateProject = async (req, res) => {
   }
 };
 
-// DELETE /api/projects/:id (admin)
+// DELETE /api/projects/:id
 export const deleteProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
-      return res.status(404).json({ message: "Project not found" });
+      return res.status(404).json({
+        message: "Project not found",
+      });
     }
 
-    [...project.images, project.downloadFile]
-      .filter(Boolean)
-      .forEach((filePath) => {
-        const fullPath = path.join(process.cwd(), filePath);
+    /*
+      The files are stored on ImageKit.
 
-        if (fs.existsSync(fullPath)) {
-          fs.unlinkSync(fullPath);
-        }
-      });
+      We intentionally do not use fs.unlinkSync()
+      here because the files are no longer stored
+      in Render's local uploads folder.
+
+      The MongoDB project record is deleted.
+    */
 
     await project.deleteOne();
 
-    res.json({ message: "Project deleted" });
+    res.json({
+      message: "Project deleted",
+    });
   } catch (err) {
+    console.error("Delete project error:", err);
+
     res.status(500).json({
       message: "Server error",
       error: err.message,
@@ -205,7 +305,7 @@ export const deleteProject = async (req, res) => {
   }
 };
 
-// GET /api/projects/:id/download (public)
+// GET /api/projects/:id/download
 export const downloadProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -216,19 +316,11 @@ export const downloadProject = async (req, res) => {
       });
     }
 
-    const filePath = path.join(process.cwd(), project.downloadFile);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({
-        message: "File missing on server",
-      });
-    }
-
-    res.download(
-      filePath,
-      project.downloadFileName || path.basename(filePath)
-    );
+    // ImageKit URL
+    res.redirect(project.downloadFile);
   } catch (err) {
+    console.error("Download project error:", err);
+
     res.status(500).json({
       message: "Server error",
       error: err.message,

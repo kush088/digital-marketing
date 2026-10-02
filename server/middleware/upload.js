@@ -1,41 +1,47 @@
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 
-const uploadDir = path.resolve("uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${unique}${path.extname(file.originalname)}`);
-  },
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-  const imageTypes = /jpeg|jpg|png|webp|gif/;
-  const isImageField = file.fieldname === "images";
-  const isDownloadField = file.fieldname === "downloadFile";
+  const ext = path.extname(file.originalname).toLowerCase();
 
-  if (isImageField) {
-    const ext = imageTypes.test(path.extname(file.originalname).toLowerCase());
-    if (!ext) return cb(new Error("Only image files are allowed for the images field"));
+  const imageExtensions = [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".gif",
+  ];
+
+  const documentExtensions = [
+    ".pdf",
+    ".zip",
+    ".rar",
+    ".7z",
+  ];
+
+  if (
+    imageExtensions.includes(ext) ||
+    documentExtensions.includes(ext)
+  ) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error(
+        "Only JPG, JPEG, PNG, WEBP, GIF, PDF, ZIP, RAR and 7Z files are allowed."
+      ),
+      false
+    );
   }
-
-  if (isDownloadField) {
-    const allowed = /zip|pdf|rar|7z/;
-    const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-    if (!ext) return cb(new Error("Download file must be a .zip, .rar, .7z or .pdf"));
-  }
-
-  cb(null, true);
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  limits: {
+    fileSize: 25 * 1024 * 1024,
+  },
 });
 
 export default upload;
