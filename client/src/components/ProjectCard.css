@@ -1,3 +1,7 @@
+/* =========================================
+   PROJECT CARD
+========================================= */
+
 .project-card {
   display: flex;
   flex-direction: column;
@@ -5,12 +9,22 @@
   border-radius: var(--radius);
   border: 1px solid var(--surface-2);
   background: var(--surface);
-  transition: border-color 0.2s ease;
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .project-card:hover {
+  transform: translateY(-5px);
   border-color: var(--cyan);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
 }
+
+
+/* =========================================
+   PROJECT IMAGE
+========================================= */
 
 .project-card-image {
   position: relative;
@@ -21,6 +35,7 @@
 }
 
 .project-card-image img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -28,41 +43,113 @@
 }
 
 .project-card:hover .project-card-image img {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
+
+/* =========================================
+   IMAGE PLACEHOLDER
+========================================= */
+
 .project-card-placeholder {
-  height: 100%;
   width: 100%;
+  height: 100%;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   font-family: "Sora", sans-serif;
-  font-size: 30px;
+  font-size: 42px;
   font-weight: 800;
-  color: var(--muted);
+
+  color: var(--cyan);
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(0, 210, 190, 0.12),
+      transparent 60%
+    ),
+    var(--surface-2);
 }
 
-.project-card-result {
+
+/* =========================================
+   CATEGORY BADGE
+========================================= */
+
+.project-card-category {
   position: absolute;
-  left: 16px;
   top: 16px;
+  left: 16px;
+
+  padding: 6px 12px;
+
   border-radius: var(--radius-full);
-  background: rgba(18, 16, 28, 0.8);
-  backdrop-filter: blur(4px);
-  padding: 4px 12px;
+
+  background: rgba(10, 20, 25, 0.82);
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  backdrop-filter: blur(8px);
+
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+
   color: var(--cyan);
+
+  z-index: 2;
 }
+
+
+/* =========================================
+   FEATURED BADGE
+========================================= */
+
+.project-card-featured {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+
+  padding: 6px 12px;
+
+  border-radius: var(--radius-full);
+
+  background: rgba(10, 20, 25, 0.82);
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  backdrop-filter: blur(8px);
+
+  font-size: 12px;
+  font-weight: 600;
+
+  color: var(--cyan);
+
+  z-index: 2;
+}
+
+
+/* =========================================
+   CARD BODY
+========================================= */
 
 .project-card-body {
   flex: 1;
+
   display: flex;
   flex-direction: column;
-  gap: 12px;
+
+  gap: 14px;
+
   padding: 24px;
 }
+
+
+/* =========================================
+   TECH STACK / TAGS
+========================================= */
 
 .project-card-tags {
   display: flex;
@@ -70,47 +157,182 @@
   gap: 8px;
 }
 
+.project-card-tags .badge {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 5px 10px;
+
+  border-radius: var(--radius-full);
+
+  background: var(--surface-2);
+
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  font-size: 11px;
+  font-weight: 500;
+
+  color: var(--muted);
+
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.project-card:hover .project-card-tags .badge {
+  border-color: rgba(0, 220, 200, 0.25);
+  color: var(--cyan);
+}
+
+
+/* =========================================
+   TITLE
+========================================= */
+
 .project-card-title {
-  font-size: 18px;
+  margin: 0;
+
+  font-family: "Sora", sans-serif;
+
+  font-size: 19px;
+  line-height: 1.4;
+
   font-weight: 700;
 }
 
-.project-card-title a:hover {
-  color: var(--violet);
+.project-card-title a {
+  color: var(--ink);
+  text-decoration: none;
+
+  transition: color 0.2s ease;
 }
+
+.project-card-title a:hover {
+  color: var(--cyan);
+}
+
+
+/* =========================================
+   DESCRIPTION
+========================================= */
 
 .project-card-summary {
   flex: 1;
+
+  margin: 0;
+
   font-size: 14px;
+  line-height: 1.7;
+
   color: var(--muted);
+
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
+
   overflow: hidden;
 }
+
+
+/* =========================================
+   ACTIONS
+========================================= */
 
 .project-card-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding-top: 4px;
+  gap: 18px;
+
+  padding-top: 8px;
+
   font-size: 14px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+
+/* =========================================
+   VIEW CASE STUDY
+========================================= */
+
 .project-card-view {
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  font-weight: 600;
+
   color: var(--ink);
+
+  text-decoration: none;
+
+  transition:
+    color 0.2s ease,
+    gap 0.2s ease;
 }
 
 .project-card-view:hover {
-  color: var(--violet);
+  gap: 11px;
+  color: var(--cyan);
 }
 
+
+/* =========================================
+   DOWNLOAD
+========================================= */
+
 .project-card-download {
+  display: inline-flex;
+  align-items: center;
+
   font-weight: 500;
+
   color: var(--muted);
+
+  text-decoration: none;
+
+  transition: color 0.2s ease;
 }
 
 .project-card-download:hover {
   color: var(--cyan);
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+  .project-card-body {
+    padding: 20px;
+  }
+
+  .project-card-title {
+    font-size: 17px;
+  }
+
+  .project-card-summary {
+    font-size: 13px;
+  }
+
+  .project-card-category,
+  .project-card-featured {
+    top: 12px;
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  .project-card-category {
+    left: 12px;
+  }
+
+  .project-card-featured {
+    right: 12px;
+  }
+
+  .project-card-actions {
+    gap: 14px;
+    flex-wrap: wrap;
+  }
 }

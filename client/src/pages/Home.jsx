@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -57,14 +56,16 @@ export default function Home() {
 
   return (
     <div>
+
       {/* =====================================================
           HERO SECTION
-          ===================================================== */}
+      ===================================================== */}
 
       <section className="hero">
         <div className="hero-glow" />
 
         <div className="hero-grid">
+
           <div>
             <h1 className="hero-headline">
               Growing brands through digital marketing.
@@ -77,37 +78,57 @@ export default function Home() {
             </p>
 
             <div className="hero-actions">
-              <Link to="/projects" className="btn btn-primary">
+
+              <Link
+                to="/projects"
+                className="btn btn-primary"
+              >
                 See the work
               </Link>
 
-              <Link to="/contact" className="btn btn-outline">
+              <Link
+                to="/contact"
+                className="btn btn-outline"
+              >
                 Let's Connect
               </Link>
+
             </div>
           </div>
 
-          <div className="hero-stats">
-            {stats.map((s) => (
-              <div key={s.label} className="stat-card">
-                <p className="stat-value">{s.value}</p>
 
-                <p className="stat-label">{s.label}</p>
+          <div className="hero-stats">
+
+            {stats.map((s) => (
+              <div
+                key={s.label}
+                className="stat-card"
+              >
+                <p className="stat-value">
+                  {s.value}
+                </p>
+
+                <p className="stat-label">
+                  {s.label}
+                </p>
               </div>
             ))}
+
           </div>
+
         </div>
       </section>
 
 
       {/* =====================================================
           MOVING GROWTH MARQUEE
-          ===================================================== */}
+      ===================================================== */}
 
       <section
         className="growth-marquee"
         aria-label="Digital growth message"
       >
+
         <div className="growth-marquee-track">
 
           {/* First marquee group */}
@@ -195,37 +216,8 @@ export default function Home() {
 
 
       {/* =====================================================
-          SERVICES
-          ===================================================== */}
-
-      <section className="section">
-        <div className="container">
-
-          <h2 className="section-heading">
-            What I Can Do for Your Brand
-          </h2>
-
-          <div className="services-grid">
-
-            {services.map((s) => (
-              <div
-                key={s.name}
-                className="service-tile"
-              >
-                <h3>{s.name}</h3>
-
-                <p>{s.detail}</p>
-              </div>
-            ))}
-
-          </div>
-        </div>
-      </section>
-
-
-      {/* =====================================================
           RECENT WORK
-          ===================================================== */}
+      ===================================================== */}
 
       {projects.length > 0 && (
         <section className="section">
@@ -250,6 +242,7 @@ export default function Home() {
                 <ProjectCard
                   key={p._id}
                   project={p}
+                  showDownload={false}
                 />
               ))}
 
@@ -262,8 +255,46 @@ export default function Home() {
 
 
       {/* =====================================================
+          SERVICES
+      ===================================================== */}
+
+      <section className="section">
+
+        <div className="container">
+
+          <h2 className="section-heading">
+            What I Can Do for Your Brand
+          </h2>
+
+          <div className="services-grid">
+
+            {services.map((s) => (
+              <div
+                key={s.name}
+                className="service-tile"
+              >
+
+                <h3>
+                  {s.name}
+                </h3>
+
+                <p>
+                  {s.detail}
+                </p>
+
+              </div>
+            ))}
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
           CTA SECTION
-          ===================================================== */}
+      ===================================================== */}
 
       <section className="section">
 
@@ -293,5 +324,3 @@ export default function Home() {
     </div>
   );
 }
-
-
