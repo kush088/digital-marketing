@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 
 import express from "express";
@@ -9,6 +10,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import seoRoutes from "./routes/seoRoutes.js";
 
 connectDB();
 
@@ -20,6 +22,7 @@ const __dirname = path.dirname(__filename);
 const allowedOrigin =
   process.env.CLIENT_URL || "http://localhost:5173";
 
+// Middleware
 app.use(
   cors({
     origin: allowedOrigin,
@@ -35,10 +38,13 @@ app.use(
   express.static(path.join(__dirname, "uploads"))
 );
 
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/seo", seoRoutes);
 
+// Health check
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -46,6 +52,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+// Serve the production frontend
 const clientDistPath = path.join(
   __dirname,
   "../client/dist"
@@ -53,12 +60,14 @@ const clientDistPath = path.join(
 
 app.use(express.static(clientDistPath));
 
+// React frontend fallback
 app.get("*", (req, res) => {
   res.sendFile(
     path.join(clientDistPath, "index.html")
   );
 });
 
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err);
 

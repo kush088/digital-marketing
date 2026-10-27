@@ -2,9 +2,16 @@ import mongoose from "mongoose";
 
 const projectSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true, trim: true },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-    description: { type: String, required: true },
+    description: {
+      type: String,
+      required: true,
+    },
 
     // Project category
     category: {
@@ -15,19 +22,62 @@ const projectSchema = new mongoose.Schema(
 
     techStack: [{ type: String, trim: true }],
 
+    // Existing image-project support
     images: [{ type: String }],
 
-    githubLink: { type: String, trim: true },
+    // Media type: image project or video project
+    projectType: {
+      type: String,
+      enum: ["image", "video"],
+      default: "image",
+    },
 
-    liveLink: { type: String, trim: true },
+    // Video source: uploaded file or external URL
+    videoSource: {
+      type: String,
+      enum: ["upload", "external"],
+      default: "upload",
+    },
 
-    downloadFile: { type: String },
+    // Uploaded video URL or external video URL
+    videoUrl: {
+      type: String,
+      trim: true,
+    },
 
-    downloadFileName: { type: String },
+    // Custom thumbnail used for video cards and previews
+    thumbnail: {
+      type: String,
+      trim: true,
+    },
 
-    featured: { type: Boolean, default: false },
+    githubLink: {
+      type: String,
+      trim: true,
+    },
 
-    order: { type: Number, default: 0 },
+    liveLink: {
+      type: String,
+      trim: true,
+    },
+
+    downloadFile: {
+      type: String,
+    },
+
+    downloadFileName: {
+      type: String,
+    },
+
+    featured: {
+      type: Boolean,
+      default: false,
+    },
+
+    order: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

@@ -15,6 +15,8 @@ const router = express.Router();
 const uploadFields = upload.fields([
   { name: "images", maxCount: 8 },
   { name: "downloadFile", maxCount: 1 },
+  { name: "video", maxCount: 1 },
+  { name: "thumbnail", maxCount: 1 },
 ]);
 
 router.get("/", getProjects);

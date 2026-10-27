@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -9,78 +9,76 @@ export default function ProjectDetail() {
   const { apiBase } = useAuth();
 
   const [project, setProject] = useState(null);
-  const [status, setStatus] = useState("loading");
-
-  const backendBase = useMemo(() => {
-    if (!apiBase) return "";
-
-    return apiBase.replace(/\/api\/?$/, "");
-  }, [apiBase]);
-
-  const getFileUrl = (file) => {
-    if (!file) return "";
-
-    if (
-      file.startsWith("http://") ||
-      file.startsWith("https://")
-    ) {
-      return file;
-    }
-
-    return `${backendBase}${
-      file.startsWith("/") ? file : `/${file}`
-    }`;
-  };
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadProject = async () => {
+    let active = true;
+
+    async function fetchProject() {
+      setLoading(true);
+      setError("");
+      setProject(null);
+
       try {
-        setStatus("loading");
+        const response = await axios.get(`${apiBase}/projects/${id}`);
 
-        const response = await axios.get(
-          `${apiBase}/projects/${id}`
-        );
+        const data = response.data?.project ?? response.data;
 
-        setProject(response.data);
-        setStatus("ready");
-      } catch (error) {
-        console.error("Failed to load project:", error);
-        setStatus("error");
+        if (active) {
+          setProject(data);
+        }
+      } catch (err) {
+        console.error("Failed to load project:", err);
+
+        if (active) {
+          setError("This project could not be loaded.");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
       }
-    };
+    }
 
     if (apiBase && id) {
-      loadProject();
+      fetchProject();
+    } else {
+      setLoading(false);
+      setError("Project information is unavailable.");
     }
+
+    return () => {
+      active = false;
+    };
   }, [apiBase, id]);
 
-  if (status === "loading") {
+  if (loading) {
     return (
-      <div className="detail-loading">
-        <div className="detail-spinner"></div>
-        <p>Loading project...</p>
-      </div>
+      <main className="project-detail-page">
+        <div className="project-detail-container">
+          <div className="project-detail-status" role="status">
+            <span className="project-detail-spinner" />
+            <p>Loading project...</p>
+          </div>
+        </div>
+      </main>
     );
   }
 
-  if (status === "error" || !project) {
+  if (error || !project) {
     return (
-      <div className="detail-error">
-        <div className="detail-error-icon">!</div>
-
-        <h1>Project not found</h1>
-
-        <p>
-          This project may have been moved or removed.
-        </p>
-
-        <Link
-          to="/projects"
-          className="detail-back-button"
-        >
-          ← Back to all work
-        </Link>
-      </div>
+      <main className="project-detail-page">
+        <div className="project-detail-container">
+          <div className="project-detail-status">
+            <h1>Project unavailable</h1>
+            <p>{error || "This project could not be found."}</p>
+            <Link to="/projects" className="project-detail-button">
+              ← Back to Work
+            </Link>
+          </div>
+        </div>
+      </main>
     );
   }
 
@@ -88,317 +86,261 @@ export default function ProjectDetail() {
     title,
     description,
     category,
-    techStack = [],
     images = [],
-    featured,
+    techStack = [],
+    projectType,
+    videoUrl,
+    videoSource,
+    thumbnail,
+    liveUrl,
+    websiteUrl,
+    projectUrl,
+    githubUrl,
     downloadFile,
-    downloadFileName,
-    githubLink,
-    liveLink,
   } = project;
 
-  const downloadUrl = downloadFile
-    ? `${apiBase}/projects/${id}/download`
-    : "";
+  const getMediaUrl = (value) => {
+    if (!value || typeof value !== "string") return "";
+
+    if (/^https?:\/\//i.test(value)) {
+      return value;
+    }
+
+    return `${apiBase.replace(/\/api\/?$/, "")}/${value.replace(/^\/+/, "")}`;
+  };
+
+  const mainImage = getMediaUrl(images?.[0]);
+  const galleryImages = Array.isArray(images)
+    ? images.slice(1).map(getMediaUrl).filter(Boolean)
+    : [];
+
+  const mediaUrl = getMediaUrl(videoUrl);
+  const thumbnailUrl = getMediaUrl(thumbnail);
+
+  const isYouTube =
+    videoSource === "external" &&
+    /(?:youtube\.com|youtu\.be)/i.test(videoUrl || "");
+
+  const isVimeo =
+    videoSource === "external" &&
+    /vimeo\.com/i.test(videoUrl || "");
+
+  const getEmbedUrl = (url) => {
+    if (!url) return "";
+
+    try {
+      const parsed = new URL(url);
+
+      if (parsed.hostname.includes("youtu.be")) {
+        return `https://www.youtube-nocookie.com/embed/${parsed.pathname.slice(1)}`;
+      }
+
+      if (parsed.hostname.includes("youtube.com")) {
+        const videoId = parsed.searchParams.get("v");
+
+        if (videoId) {
+          return `https://www.youtube-nocookie.com/embed/${videoId}`;
+        }
+
+        if (parsed.pathname.startsWith("/embed/")) {
+          return `https://www.youtube-nocookie.com${parsed.pathname}`;
+        }
+      }
+
+      if (parsed.hostname.includes("vimeo.com")) {
+        const videoId = parsed.pathname.split("/").filter(Boolean).pop();
+
+        if (videoId && /^\d+$/.test(videoId)) {
+          return `https://player.vimeo.com/video/${videoId}`;
+        }
+      }
+    } catch {
+      return "";
+    }
+
+    return "";
+  };
+
+  const embedUrl = getEmbedUrl(videoUrl);
+
+  const links = [
+    {
+      label: "View Live Project",
+      url: liveUrl || websiteUrl || projectUrl,
+    },
+    {
+      label: "View Source Code",
+      url: githubUrl,
+    },
+  ].filter((item) => item.url);
 
   return (
-    <main className="detail-page">
+    <main className="project-detail-page">
+      <div className="project-detail-container">
+        {/* Navigation */}
+        <nav className="project-detail-nav" aria-label="Breadcrumb">
+          <Link to="/projects" className="project-detail-back">
+            <span aria-hidden="true">←</span> Back to Work
+          </Link>
 
-      {/* =========================================
-          BACK
-      ========================================= */}
+          {category && (
+            <span className="project-detail-category">{category}</span>
+          )}
+        </nav>
 
-      <div className="container">
+        {/* Project introduction */}
+        <header className="project-detail-header">
+          <span className="project-detail-eyebrow">
+            PROJECT OVERVIEW
+          </span>
 
-        <Link
-          to="/projects"
-          className="detail-back"
-        >
-          ← Back to all work
-        </Link>
-
-
-        {/* =======================================
-            HEADER
-        ======================================= */}
-
-        <header className="detail-header">
-
-          <div className="detail-header-top">
-
-            {category && (
-              <span className="detail-category">
-                {category}
-              </span>
-            )}
-
-            {featured && (
-              <span className="detail-featured">
-                ★ Featured
-              </span>
-            )}
-
-          </div>
-
-          <h1 className="detail-title">
-            {title}
+          <h1 className="project-detail-title">
+            {title || "Untitled Project"}
+            <span>.</span>
           </h1>
 
-          <p className="detail-summary">
-            {description}
-          </p>
+          {description && (
+            <p className="project-detail-description">{description}</p>
+          )}
 
+          {techStack.length > 0 && (
+            <div className="project-detail-tech">
+              {techStack.map((tech, index) => (
+                <span key={`${tech}-${index}`} className="project-detail-tag">
+                  {tech}
+                </span>
+              ))}
+            </div>
+          )}
         </header>
 
-
-        {/* =======================================
-            HERO IMAGE
-        ======================================= */}
-
-        {images.length > 0 && (
-          <section className="detail-hero">
-
-            <div className="detail-main-image">
-
+        {/* Main media */}
+        {(projectType === "video" && mediaUrl) || mainImage ? (
+          <section
+            className="project-detail-media"
+            aria-label="Project preview"
+          >
+            {projectType === "video" && mediaUrl ? (
+              isYouTube || isVimeo ? (
+                embedUrl ? (
+                  <iframe
+                    src={embedUrl}
+                    title={`${title || "Project"} video`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    loading="lazy"
+                  />
+                ) : (
+                  <a
+                    href={videoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="project-detail-media-fallback"
+                  >
+                    Watch project video ↗
+                  </a>
+                )
+              ) : (
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster={thumbnailUrl || mainImage || undefined}
+                >
+                  <source src={mediaUrl} />
+                  Your browser does not support video playback.
+                </video>
+              )
+            ) : (
               <img
-                src={getFileUrl(images[0])}
-                alt={title}
+                src={mainImage}
+                alt={title || "Project preview"}
+                fetchPriority="high"
               />
+            )}
+          </section>
+        ) : null}
 
+        {/* Additional project images */}
+        {galleryImages.length > 0 && (
+          <section className="project-detail-gallery">
+            <div className="project-detail-section-heading">
+              <div>
+                <span className="project-detail-eyebrow">
+                  VISUALS
+                </span>
+                <h2>Project gallery</h2>
+              </div>
+
+              <span className="project-detail-gallery-count">
+                {String(galleryImages.length).padStart(2, "0")} IMAGES
+              </span>
             </div>
 
+            <div className="project-detail-gallery-grid">
+              {galleryImages.map((image, index) => (
+                <figure
+                  className="project-detail-gallery-item"
+                  key={`${image}-${index}`}
+                >
+                  <img
+                    src={image}
+                    alt={`${title || "Project"} preview ${index + 2}`}
+                    loading="lazy"
+                  />
+                </figure>
+              ))}
+            </div>
           </section>
         )}
 
-
-        {/* =======================================
-            CONTENT GRID
-        ======================================= */}
-
-        <div className="detail-content-grid">
-
-          {/* =====================================
-              MAIN CONTENT
-          ===================================== */}
-
-          <section className="detail-main-content">
-
-            {/* PROJECT OVERVIEW */}
-
-            <div className="detail-section">
-
-              <p className="detail-eyebrow">
-                PROJECT OVERVIEW
-              </p>
-
-              <h2>
-                About this project
-              </h2>
-
-              <p className="detail-description">
-                {description}
-              </p>
-
+        {/* Project links */}
+        {links.length > 0 && (
+          <section className="project-detail-links">
+            <div>
+              <span className="project-detail-eyebrow">
+                EXPLORE FURTHER
+              </span>
+              <h2>Project links</h2>
             </div>
 
+            <div className="project-detail-link-list">
+              {links.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="project-detail-link"
+                >
+                  <span>{link.label}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+              ))}
 
-            {/* SKILLS */}
-
-            {techStack.length > 0 && (
-              <div className="detail-section">
-
-                <p className="detail-eyebrow">
-                  SKILLS & TOOLS
-                </p>
-
-                <h2>
-                  Technologies & Skills
-                </h2>
-
-                <div className="detail-skills">
-
-                  {techStack.map((skill, index) => (
-                    <span
-                      key={`${skill}-${index}`}
-                      className="detail-skill"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-
-                </div>
-
-              </div>
-            )}
-
-
-            {/* IMAGE GALLERY */}
-
-            {images.length > 1 && (
-              <div className="detail-section">
-
-                <p className="detail-eyebrow">
-                  PROJECT IMAGES
-                </p>
-
-                <h2>
-                  Project Gallery
-                </h2>
-
-                <div className="detail-gallery">
-
-                  {images.map((image, index) => (
-                    <div
-                      className="detail-gallery-item"
-                      key={`${image}-${index}`}
-                    >
-
-                      <img
-                        src={getFileUrl(image)}
-                        alt={`${title} ${index + 1}`}
-                      />
-
-                    </div>
-                  ))}
-
-                </div>
-
-              </div>
-            )}
-
+              {downloadFile && (
+                <a
+                  href={getMediaUrl(downloadFile)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="project-detail-link"
+                >
+                  <span>Download project file</span>
+                  <span aria-hidden="true">↓</span>
+                </a>
+              )}
+            </div>
           </section>
+        )}
 
-
-          {/* =====================================
-              SIDEBAR
-          ===================================== */}
-
-          <aside className="detail-sidebar">
-
-            <div className="detail-sidebar-card">
-
-              {/* PROJECT TYPE */}
-
-              <p className="detail-sidebar-label">
-                PROJECT TYPE
-              </p>
-
-              <p className="detail-sidebar-value">
-                {category || "Digital Marketing"}
-              </p>
-
-
-              {/* SKILLS */}
-
-              {techStack.length > 0 && (
-                <>
-                  <div className="detail-divider"></div>
-
-                  <p className="detail-sidebar-label">
-                    SKILLS
-                  </p>
-
-                  <div className="detail-sidebar-skills">
-
-                    {techStack.map((skill, index) => (
-                      <span
-                        key={`${skill}-${index}`}
-                      >
-                        {skill}
-                      </span>
-                    ))}
-
-                  </div>
-                </>
-              )}
-
-
-              {/* =================================
-                  RESOURCES
-              ================================= */}
-
-              {(githubLink ||
-                liveLink ||
-                downloadFile) && (
-                <>
-                  <div className="detail-divider"></div>
-
-                  <p className="detail-sidebar-label">
-                    RESOURCES
-                  </p>
-
-                  <div className="detail-sidebar-links">
-
-                    {/* LIVE PROJECT */}
-
-                    {liveLink && (
-                      <a
-                        href={liveLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="detail-action"
-                      >
-                        <span>
-                          View Live Project
-                        </span>
-
-                        <span>
-                          ↗
-                        </span>
-                      </a>
-                    )}
-
-
-                    {/* GITHUB */}
-
-                    {githubLink && (
-                      <a
-                        href={githubLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="detail-action"
-                      >
-                        <span>
-                          View Source
-                        </span>
-
-                        <span>
-                          ↗
-                        </span>
-                      </a>
-                    )}
-
-
-                    {/* DOWNLOAD */}
-
-                    {downloadFile && (
-                      <a
-                        href={downloadUrl}
-                        className="detail-action detail-download"
-                        download={downloadFileName || true}
-                      >
-                        <span>
-                          Download Case Study
-                        </span>
-
-                        <span>
-                          ↓
-                        </span>
-                      </a>
-                    )}
-
-                  </div>
-                </>
-              )}
-
-            </div>
-
-          </aside>
-
-        </div>
-
+        {/* Footer navigation */}
+        <footer className="project-detail-footer">
+          <p>Interested in my work?</p>
+          <Link to="/projects" className="project-detail-footer-link">
+            Explore more projects <span aria-hidden="true">↗</span>
+          </Link>
+        </footer>
       </div>
-
     </main>
   );
 }

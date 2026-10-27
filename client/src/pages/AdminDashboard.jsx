@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext.jsx";
 import "./AdminDashboard.css";
@@ -12,7 +12,12 @@ const emptyForm = {
   liveLink: "",
   featured: false,
   order: 0,
-
+  projectType: "image",
+  videoSource: "upload",
+  videoUrl: "",
+  existingThumbnail: "",
+  newThumbnail: null,
+  newVideo: null,
   existingImages: [],
   removeImages: [],
   newImages: [],
@@ -21,180 +26,274 @@ const emptyForm = {
   newDownloadFile: null,
 };
 
+const defaultSeoPages = [
+  { slug: "home", pageName: "Home", title: "", description: "" },
+  { slug: "about", pageName: "About", title: "", description: "" },
+  { slug: "services", pageName: "Services", title: "", description: "" },
+  { slug: "projects", pageName: "Projects", title: "", description: "" },
+  { slug: "contact", pageName: "Contact", title: "", description: "" },
+];
+
 function ProjectModal({ initial, onClose, onSave }) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     ...emptyForm,
     ...initial,
-
     techStack: Array.isArray(initial?.techStack)
       ? initial.techStack.join(", ")
       : initial?.techStack || "",
-
+    existingThumbnail: initial?.thumbnail || "",
     existingImages: initial?.images || [],
-    removeImages: [],
-    newImages: [],
     existingDownloadFile: initial?.downloadFile || "",
-    existingDownloadFileName:
-      initial?.downloadFileName || "",
+    existingDownloadFileName: initial?.downloadFileName || "",
+    projectType: initial?.projectType || "image",
+    videoSource: initial?.videoSource || "upload",
+    videoUrl: initial?.videoUrl || "",
+    newThumbnail: null,
+    newVideo: null,
+    newImages: [],
+    removeImages: [],
     newDownloadFile: null,
-  });
+  }));
 
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [thumbnailPreview, setThumbnailPreview] = useState(
+    initial?.thumbnail || ""
+  );
+  const [videoPreview, setVideoPreview] = useState("");
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  useEffect(() => {
+    if (!form.newThumbnail) {
+      setThumbnailPreview(form.existingThumbnail || "");
+      return;
+    }
 
-    setForm((prev) => ({
-      ...prev,
+    const url = URL.createObjectURL(form.newThumbnail);
+    setThumbnailPreview(url);
+
+    return () => URL.revokeObjectURL(url);
+  }, [form.newThumbnail, form.existingThumbnail]);
+
+  useEffect(() => {
+    if (!form.newVideo) {
+      setVideoPreview("");
+      return;
+    }
+
+    const url = URL.createObjectURL(form.newVideo);
+    setVideoPreview(url);
+
+    return () => URL.revokeObjectURL(url);
+  }, [form.newVideo]);
+
+  const changeField = (event) => {
+    const { name, value, type, checked } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files || []);
+  const handleImageChange = (event) => {
+    const files = Array.from(event.target.files || []);
 
     if (files.length > 8) {
-      alert("You can upload a maximum of 8 images.");
-      e.target.value = "";
+      setError("You can select a maximum of 8 images at a time.");
+      event.target.value = "";
       return;
     }
 
-    setForm((prev) => ({
-      ...prev,
-      newImages: files,
-    }));
+    if (files.some((file) => !file.type.startsWith("image/"))) {
+      setError("Please select valid image files.");
+      event.target.value = "";
+      return;
+    }
+
+    if (files.some((file) => file.size > 25 * 1024 * 1024)) {
+      setError("Each image must be smaller than 25 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+    setForm((previous) => ({ ...previous, newImages: files }));
   };
 
-  const handlePdfChange = (e) => {
-    const file = e.target.files?.[0];
+  const handleThumbnailChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    if (!file) {
-      setForm((prev) => ({
-        ...prev,
-        newDownloadFile: null,
-      }));
-      return;
-    }
-
-    if (file.type !== "application/pdf") {
-      alert("Only PDF files are allowed.");
-      e.target.value = "";
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid thumbnail image.");
+      event.target.value = "";
       return;
     }
 
     if (file.size > 25 * 1024 * 1024) {
-      alert("PDF must be smaller than 25MB.");
-      e.target.value = "";
+      setError("The thumbnail must be smaller than 25 MB.");
+      event.target.value = "";
       return;
     }
 
-    setForm((prev) => ({
-      ...prev,
-      newDownloadFile: file,
+    setError("");
+    setForm((previous) => ({ ...previous, newThumbnail: file }));
+  };
+
+  const handleVideoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedExtensions = [".mp4", ".webm", ".mov", ".m4v"];
+    const extension = file.name
+      .slice(file.name.lastIndexOf("."))
+      .toLowerCase();
+
+    if (
+      !allowedExtensions.includes(extension) ||
+      !file.type.startsWith("video/")
+    ) {
+      setError("Use a valid MP4, WEBM, MOV, or M4V video.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 100 * 1024 * 1024) {
+      setError("The video must be smaller than 100 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+    setForm((previous) => ({
+      ...previous,
+      newVideo: file,
+      videoUrl: "",
     }));
+  };
+
+  const handlePdfChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      setError("Only PDF files are allowed.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 25 * 1024 * 1024) {
+      setError("The PDF must be smaller than 25 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+    setForm((previous) => ({ ...previous, newDownloadFile: file }));
   };
 
   const removeExistingImage = (image) => {
-    setForm((prev) => ({
-      ...prev,
-      existingImages: prev.existingImages.filter(
+    setForm((previous) => ({
+      ...previous,
+      existingImages: previous.existingImages.filter(
         (item) => item !== image
       ),
-      removeImages: [
-        ...prev.removeImages,
-        image,
-      ],
+      removeImages: [...previous.removeImages, image],
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
 
     if (!form.title.trim()) {
-      alert("Please enter project title.");
+      setError("Please enter a project title.");
       return;
     }
 
     if (!form.description.trim()) {
-      alert("Please enter project description.");
+      setError("Please enter a project description.");
       return;
     }
 
     if (!form.category) {
-      alert("Please select a category.");
+      setError("Please select a project category.");
       return;
+    }
+
+    if (
+      form.projectType === "video" &&
+      form.videoSource === "external" &&
+      !/^https?:\/\//i.test(form.videoUrl.trim())
+    ) {
+      setError("Enter a valid external video URL starting with http:// or https://.");
+      return;
+    }
+
+    if (
+      form.projectType === "video" &&
+      form.videoSource === "upload" &&
+      !form.newVideo &&
+      !initial?.video
+    ) {
+      setError("Please upload a video file.");
+      return;
+    }
+
+    if (
+      form.projectType === "video" &&
+      form.videoSource === "external" &&
+      !form.videoUrl.trim()
+    ) {
+      setError("Please enter an external video URL.");
+      return;
+    }
+
+    const data = new FormData();
+
+    const fields = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      category: form.category,
+      techStack: form.techStack,
+      githubLink: form.githubLink,
+      liveLink: form.liveLink,
+      featured: String(form.featured),
+      order: String(Number(form.order) || 0),
+      projectType: form.projectType,
+      videoSource: form.videoSource,
+      videoUrl: form.videoUrl.trim(),
+    };
+
+    Object.entries(fields).forEach(([key, value]) => {
+      data.append(key, value);
+    });
+
+    if (form.removeImages.length) {
+      data.append("removeImages", JSON.stringify(form.removeImages));
+    }
+
+    form.newImages.forEach((file) => data.append("images", file));
+
+    if (form.newThumbnail) {
+      data.append("thumbnail", form.newThumbnail);
+    }
+
+    if (form.newVideo) {
+      data.append("video", form.newVideo);
+    }
+
+    if (form.newDownloadFile) {
+      data.append("downloadFile", form.newDownloadFile);
     }
 
     setSaving(true);
 
     try {
-      const formData = new FormData();
-
-      formData.append(
-        "title",
-        form.title.trim()
-      );
-
-      formData.append(
-        "description",
-        form.description.trim()
-      );
-
-      formData.append(
-        "category",
-        form.category
-      );
-
-      formData.append(
-        "techStack",
-        form.techStack || ""
-      );
-
-      formData.append(
-        "githubLink",
-        form.githubLink || ""
-      );
-
-      formData.append(
-        "liveLink",
-        form.liveLink || ""
-      );
-
-      formData.append(
-        "featured",
-        form.featured ? "true" : "false"
-      );
-
-      formData.append(
-        "order",
-        String(form.order || 0)
-      );
-
-      if (form.removeImages.length > 0) {
-        formData.append(
-          "removeImages",
-          JSON.stringify(form.removeImages)
-        );
-      }
-
-      form.newImages.forEach((file) => {
-        formData.append("images", file);
-      });
-
-      if (form.newDownloadFile) {
-        formData.append(
-          "downloadFile",
-          form.newDownloadFile
-        );
-      }
-
-      await onSave(formData, form._id);
-    } catch (error) {
-      console.error(error);
-
-      alert(
-        error?.response?.data?.message ||
-          "Failed to save project."
+      await onSave(data, initial?._id);
+    } catch (saveError) {
+      setError(
+        saveError.response?.data?.message || "Unable to save this project."
       );
     } finally {
       setSaving(false);
@@ -202,434 +301,323 @@ function ProjectModal({ initial, onClose, onSave }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <form
-        className="modal-panel project-modal"
-        onSubmit={handleSubmit}
-      >
-        {/* HEADER */}
-
+    <div className="modal-overlay" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <form className="modal-panel" onSubmit={handleSubmit}>
         <div className="modal-header">
           <div>
-            <p className="modal-eyebrow">
-              PROJECT MANAGER
-            </p>
-
-            <h2>
-              {form._id
-                ? "Edit Project"
-                : "Add New Project"}
-            </h2>
-
-            <p className="modal-subtitle">
-              {form._id
-                ? "Update your project details and media."
-                : "Create a new portfolio project."}
-            </p>
+            <p className="eyebrow">PROJECT MANAGER</p>
+            <h2>{initial?._id ? "Edit Project" : "Add New Project"}</h2>
+            <p>Manage project information, media and links.</p>
           </div>
 
           <button
             type="button"
             className="modal-close"
             onClick={onClose}
+            aria-label="Close"
           >
             ×
           </button>
         </div>
 
-        {/* PROJECT INFORMATION */}
-
-        <div className="form-section">
-          <div className="section-heading">
-            <span>01</span>
-
-            <div>
-              <h3>Project Information</h3>
-              <p>
-                Basic information about your project.
-              </p>
+        <div className="modal-body">
+          {error && (
+            <div className="dashboard-alert error-alert" role="alert">
+              {error}
             </div>
-          </div>
+          )}
 
           <div className="modal-grid">
-            <label className="full">
-              Project Title
-
+            <label className="form-field full">
+              Project title *
               <input
                 name="title"
                 value={form.title}
-                onChange={handleChange}
-                placeholder="e.g. SEO Growth Campaign"
-                className="field"
+                onChange={changeField}
                 required
+                maxLength={150}
+                placeholder="e.g. SEO Growth Campaign"
               />
             </label>
 
-            <label>
-              Category
-
+            <label className="form-field">
+              Category *
               <select
                 name="category"
                 value={form.category}
-                onChange={handleChange}
-                className="field"
+                onChange={changeField}
                 required
               >
-                <option value="">
-                  Select category
-                </option>
-
-                <option value="SEO">
-                  SEO
-                </option>
-
-                <option value="Google Ads">
-                  Google Ads
-                </option>
-
-                <option value="Social Media Marketing">
-                  Social Media Marketing
-                </option>
-
-                <option value="Content Marketing">
-                  Content Marketing
-                </option>
-
-                <option value="Web Development">
-                  Web Development
-                </option>
-
-                <option value="Graphic Design">
-                  Graphic Design
-                </option>
-
-                <option value="Video Editing">
-                  Video Editing
-                </option>
-
-                <option value="Other">
-                  Other
-                </option>
+                <option value="">Select category</option>
+                {[
+                  "SEO",
+                  "Google Ads",
+                  "Social Media Marketing",
+                  "Content Marketing",
+                  "Web Development",
+                  "Graphic Design",
+                  "Video Editing",
+                  "Other",
+                ].map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
             </label>
 
-            <label>
-              Tech Stack
-
+            <label className="form-field">
+              Technologies / tools
               <input
                 name="techStack"
                 value={form.techStack}
-                onChange={handleChange}
+                onChange={changeField}
                 placeholder="SEO, GA4, GSC, Google Ads"
-                className="field"
               />
-
-              <small className="field-help">
-                Separate items with commas.
-              </small>
+              <small>Separate items with commas.</small>
             </label>
 
-            <label className="full">
-              Project Description
-
+            <label className="form-field full">
+              Project description *
               <textarea
                 name="description"
-                rows={5}
                 value={form.description}
-                onChange={handleChange}
-                placeholder="Describe your project..."
-                className="field"
+                onChange={changeField}
+                rows={5}
                 required
+                placeholder="Describe your project..."
               />
             </label>
-          </div>
-        </div>
 
-        {/* MEDIA */}
+            <label className="form-field">
+              GitHub URL
+              <input
+                name="githubLink"
+                value={form.githubLink}
+                onChange={changeField}
+                type="url"
+                placeholder="https://github.com/..."
+              />
+            </label>
 
-        <div className="form-section">
-          <div className="section-heading">
-            <span>02</span>
+            <label className="form-field">
+              Live project URL
+              <input
+                name="liveLink"
+                value={form.liveLink}
+                onChange={changeField}
+                type="url"
+                placeholder="https://example.com"
+              />
+            </label>
 
-            <div>
-              <h3>Project Media</h3>
-              <p>
-                Upload project images and your case study.
-              </p>
-            </div>
-          </div>
+            <label className="form-field">
+              Project type
+              <select
+                name="projectType"
+                value={form.projectType}
+                onChange={(event) => {
+                  const projectType = event.target.value;
+                  setForm((previous) => ({
+                    ...previous,
+                    projectType,
+                    newVideo: null,
+                    videoUrl: projectType === "video" ? previous.videoUrl : "",
+                  }));
+                }}
+              >
+                <option value="image">Image / Case Study</option>
+                <option value="video">Video Project</option>
+              </select>
+            </label>
 
-          {/* EXISTING IMAGES */}
+            {form.projectType === "video" && (
+              <>
+                <label className="form-field">
+                  Video source
+                  <select
+                    name="videoSource"
+                    value={form.videoSource}
+                    onChange={(event) =>
+                      setForm((previous) => ({
+                        ...previous,
+                        videoSource: event.target.value,
+                        newVideo: null,
+                      }))
+                    }
+                  >
+                    <option value="upload">Upload video</option>
+                    <option value="external">External video URL</option>
+                  </select>
+                </label>
 
-          {form.existingImages.length > 0 && (
-            <div className="media-block">
-              <div className="media-title">
-                <h4>Existing Images</h4>
-
-                <span>
-                  {form.existingImages.length} image
-                  {form.existingImages.length !== 1
-                    ? "s"
-                    : ""}
-                </span>
-              </div>
-
-              <div className="image-grid">
-                {form.existingImages.map(
-                  (image, index) => (
-                    <div
-                      className="image-preview"
-                      key={`${image}-${index}`}
-                    >
-                      <img
-                        src={image}
-                        alt={`Project ${index + 1}`}
-                      />
-
-                      <button
-                        type="button"
-                        className="remove-image"
-                        onClick={() =>
-                          removeExistingImage(image)
-                        }
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )
+                {form.videoSource === "external" ? (
+                  <label className="form-field full">
+                    External video URL
+                    <input
+                      name="videoUrl"
+                      type="url"
+                      value={form.videoUrl}
+                      onChange={changeField}
+                      placeholder="https://..."
+                    />
+                  </label>
+                ) : (
+                  <label className="form-field full upload-field">
+                    Upload video (MP4, WEBM, MOV, M4V; max 100 MB)
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime,.m4v"
+                      onChange={handleVideoChange}
+                    />
+                    {form.newVideo && <small>{form.newVideo.name}</small>}
+                    {!form.newVideo && initial?.video && (
+                      <small>Existing video will be retained if no new file is selected.</small>
+                    )}
+                  </label>
                 )}
-              </div>
-            </div>
-          )}
 
-          <div className="upload-grid">
-            {/* IMAGE */}
+                {videoPreview && (
+                  <div className="full">
+                    <video
+                      src={videoPreview}
+                      controls
+                      style={{ width: "100%", maxHeight: 260, borderRadius: 10 }}
+                    />
+                  </div>
+                )}
+              </>
+            )}
 
-            <label className="upload-box">
+            <label className="form-field full upload-field">
+              Project thumbnail
               <input
                 type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                accept="image/*"
+                onChange={handleThumbnailChange}
+              />
+              <small>Optional. Maximum 25 MB.</small>
+            </label>
+
+            {thumbnailPreview && (
+              <div className="full">
+                <img
+                  src={thumbnailPreview}
+                  alt="Thumbnail preview"
+                  style={{
+                    display: "block",
+                    maxWidth: "100%",
+                    maxHeight: 220,
+                    borderRadius: 10,
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+            )}
+
+            <label className="form-field full upload-field">
+              Project images (maximum 8 per selection)
+              <input
+                type="file"
+                accept="image/*"
                 multiple
                 onChange={handleImageChange}
               />
-
-              <div className="upload-icon">
-                🖼
-              </div>
-
-              <strong>
-                {form._id
-                  ? "Add More Images"
-                  : "Upload Images"}
-              </strong>
-
-              <span>
-                JPG, PNG, WEBP or GIF
-              </span>
-
               <small>
-                Maximum 8 images
+                Select images to upload. Existing images are shown below.
               </small>
-
-              <div className="upload-button">
-                Choose Images
-              </div>
             </label>
 
-            {/* PDF */}
+            {form.existingImages.length > 0 && (
+              <div className="full">
+                <p className="eyebrow">EXISTING IMAGES</p>
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill,minmax(100px,1fr))",
+                  gap: 12,
+                }}>
+                  {form.existingImages.map((image, index) => {
+                    const src = typeof image === "string" ? image : image.url;
+                    return (
+                      <div key={`${src}-${index}`}>
+                        <img
+                          src={src}
+                          alt={`Project ${index + 1}`}
+                          style={{
+                            width: "100%",
+                            height: 90,
+                            objectFit: "cover",
+                            borderRadius: 8,
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          style={{ marginTop: 6, width: "100%" }}
+                          onClick={() => removeExistingImage(image)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-            <label className="upload-box">
+            {form.newImages.length > 0 && (
+              <div className="full">
+                <small>
+                  {form.newImages.length} new image(s) selected
+                </small>
+              </div>
+            )}
+
+            <label className="form-field full upload-field">
+              Downloadable PDF (optional)
               <input
                 type="file"
-                accept=".pdf,application/pdf"
+                accept="application/pdf,.pdf"
                 onChange={handlePdfChange}
               />
-
-              <div className="upload-icon pdf-icon">
-                PDF
-              </div>
-
-              <strong>
-                {form._id
-                  ? "Replace Case Study"
-                  : "Upload Case Study"}
-              </strong>
-
-              <span>
-                PDF document only
-              </span>
-
               <small>
-                Maximum 25MB
+                Maximum 25 MB.
+                {form.existingDownloadFile &&
+                  ` Existing file: ${form.existingDownloadFileName || "PDF attached"}`}
               </small>
-
-              <div className="upload-button">
-                Choose PDF
-              </div>
-            </label>
-          </div>
-
-          {/* NEW IMAGES */}
-
-          {form.newImages.length > 0 && (
-            <div className="media-block">
-              <div className="media-title">
-                <h4>New Images</h4>
-
-                <span>
-                  {form.newImages.length} selected
-                </span>
-              </div>
-
-              <div className="image-grid">
-                {form.newImages.map(
-                  (file, index) => (
-                    <div
-                      className="image-preview"
-                      key={`${file.name}-${index}`}
-                    >
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                      />
-
-                      <div className="image-file-name">
-                        {file.name}
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* EXISTING PDF */}
-
-          {form.existingDownloadFile && (
-            <div className="file-preview">
-              <div className="file-icon">
-                PDF
-              </div>
-
-              <div className="file-info">
-                <strong>
-                  {form.existingDownloadFileName ||
-                    "Current case study"}
-                </strong>
-
-                <span>
-                  Current uploaded document
-                </span>
-              </div>
-
-              <a
-                href={form.existingDownloadFile}
-                target="_blank"
-                rel="noreferrer"
-                className="view-file"
-              >
-                View
-              </a>
-            </div>
-          )}
-
-          {/* NEW PDF */}
-
-          {form.newDownloadFile && (
-            <div className="file-preview">
-              <div className="file-icon">
-                PDF
-              </div>
-
-              <div className="file-info">
-                <strong>
-                  {form.newDownloadFile.name}
-                </strong>
-
-                <span>
-                  New PDF selected
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* LINKS */}
-
-        <div className="form-section">
-          <div className="section-heading">
-            <span>03</span>
-
-            <div>
-              <h3>Project Links</h3>
-              <p>
-                Add external project links.
-              </p>
-            </div>
-          </div>
-
-          <div className="modal-grid">
-            <label>
-              GitHub URL
-
-              <input
-                type="url"
-                name="githubLink"
-                value={form.githubLink}
-                onChange={handleChange}
-                placeholder="https://github.com/..."
-                className="field"
-              />
+              {form.newDownloadFile && (
+                <small>Selected: {form.newDownloadFile.name}</small>
+              )}
             </label>
 
-            <label>
-              Live Website URL
-
-              <input
-                type="url"
-                name="liveLink"
-                value={form.liveLink}
-                onChange={handleChange}
-                placeholder="https://example.com"
-                className="field"
-              />
-            </label>
-
-            <label>
-              Display Order
-
+            <label className="form-field">
+              Display order
               <input
                 type="number"
                 name="order"
-                min="0"
                 value={form.order}
-                onChange={handleChange}
-                className="field"
+                onChange={changeField}
+                min="0"
               />
+              <small>Lower numbers appear first if your public page sorts by order.</small>
             </label>
 
-            <label className="checkbox-label">
+            <label className="form-field checkbox-field">
               <input
                 type="checkbox"
                 name="featured"
-                checked={form.featured}
-                onChange={handleChange}
+                checked={Boolean(form.featured)}
+                onChange={changeField}
               />
-
               <span>
-                <strong>
-                  Featured Project
-                </strong>
-
-                <small>
-                  Show this project prominently.
-                </small>
+                <strong>Featured project</strong>
+                <small>Mark this project as featured.</small>
               </span>
             </label>
           </div>
         </div>
-
-        {/* FOOTER */}
 
         <div className="modal-footer">
           <button
@@ -640,17 +628,12 @@ function ProjectModal({ initial, onClose, onSave }) {
           >
             Cancel
           </button>
-
           <button
             type="submit"
             className="btn btn-primary"
             disabled={saving}
           >
-            {saving
-              ? "Saving..."
-              : form._id
-              ? "Update Project"
-              : "Create Project"}
+            {saving ? "Saving..." : initial?._id ? "Save Changes" : "Add Project"}
           </button>
         </div>
       </form>
@@ -659,446 +642,614 @@ function ProjectModal({ initial, onClose, onSave }) {
 }
 
 export default function AdminDashboard() {
-  const {
-    apiBase,
-    token,
-    logout,
-    admin,
-  } = useAuth();
+  const { apiBase, token, logout, admin } = useAuth();
 
+  const [activeTab, setActiveTab] = useState("projects");
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalProject, setModalProject] =
-    useState(null);
+  const [contacts, setContacts] = useState([]);
+  const [seoPages, setSeoPages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [seoLoading, setSeoLoading] = useState(false);
+  const [seoSaving, setSeoSaving] = useState("");
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [seoError, setSeoError] = useState("");
+  const [seoMessage, setSeoMessage] = useState("");
 
   const authHeaders = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   };
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
+    if (!apiBase) return;
+
+    setLoading(true);
+    setError("");
+
     try {
-      setLoading(true);
+      const response = await axios.get(`${apiBase}/projects`, authHeaders);
+      const data = response.data;
 
-      const response = await axios.get(
-        `${apiBase}/projects`
+      setProjects(
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data?.projects)
+            ? data.projects
+            : []
       );
-
-      setProjects(response.data);
-    } catch (error) {
-      console.error(error);
-
-      alert(
-        error?.response?.data?.message ||
-          "Failed to load projects."
+    } catch (err) {
+      console.error("Unable to load projects:", err);
+      setError(
+        err.response?.data?.message ||
+          "Unable to load projects. Check the backend projects endpoint."
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiBase, token]);
 
-  useEffect(() => {
-    loadProjects();
-  }, [apiBase]);
+  const loadContacts = useCallback(async () => {
+    if (!apiBase || !token) return;
 
-  const handleSave = async (
-    formData,
-    projectId
-  ) => {
+    setContactsLoading(true);
+
     try {
-      if (projectId) {
-        await axios.put(
-          `${apiBase}/projects/${projectId}`,
-          formData,
-          authHeaders
-        );
-      } else {
-        await axios.post(
-          `${apiBase}/projects`,
-          formData,
-          authHeaders
-        );
-      }
+      const response = await axios.get(`${apiBase}/contact`, authHeaders);
+      const data = response.data;
 
-      setModalProject(null);
+      setContacts(
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data?.contacts)
+            ? data.contacts
+            : []
+      );
+    } catch (err) {
+      console.error("Unable to load messages:", err);
+      setError(
+        err.response?.data?.message || "Unable to load contact messages."
+      );
+    } finally {
+      setContactsLoading(false);
+    }
+  }, [apiBase, token]);
 
-      await loadProjects();
-    } catch (error) {
-      console.error(error);
+  const loadSEOSettings = useCallback(async () => {
+    if (!apiBase || !token) return;
 
-      alert(
-        error?.response?.data?.message ||
-          "Failed to save project."
+    setSeoLoading(true);
+    setSeoError("");
+    setSeoMessage("");
+
+    try {
+      const response = await axios.get(`${apiBase}/seo`, authHeaders);
+      const savedPages = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.pages)
+          ? response.data.pages
+          : [];
+
+      const mergedPages = defaultSeoPages.map((page) => {
+        const saved = savedPages.find((item) => item.slug === page.slug);
+        return saved ? { ...page, ...saved } : page;
+      });
+
+      const additionalPages = savedPages.filter(
+        (saved) => !defaultSeoPages.some((page) => page.slug === saved.slug)
       );
 
-      throw error;
+      setSeoPages([...mergedPages, ...additionalPages]);
+    } catch (err) {
+      console.error("Unable to load SEO settings:", err);
+      setSeoError(
+        err.response?.data?.message ||
+          "Unable to load SEO settings. Check that the backend SEO route exists."
+      );
+      setSeoPages(defaultSeoPages);
+    } finally {
+      setSeoLoading(false);
     }
+  }, [apiBase, token]);
+
+  useEffect(() => {
+    if (activeTab === "projects") loadProjects();
+    if (activeTab === "messages") loadContacts();
+    if (activeTab === "seo") loadSEOSettings();
+  }, [activeTab, loadProjects, loadContacts, loadSEOSettings]);
+
+  const openAddProject = () => {
+    setEditingProject(null);
+    setProjectModalOpen(true);
+    setError("");
+    setSuccess("");
   };
 
-  const handleDelete = async (id) => {
+  const openEditProject = (project) => {
+    setEditingProject(project);
+    setProjectModalOpen(true);
+    setError("");
+    setSuccess("");
+  };
+
+  const saveProject = async (formData, id) => {
+    if (!apiBase || !token) {
+      throw new Error("You must be logged in to manage projects.");
+    }
+
+    const url = id
+      ? `${apiBase}/projects/${encodeURIComponent(id)}`
+      : `${apiBase}/projects`;
+
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    };
+
+    if (id) {
+      await axios.put(url, formData, config);
+    } else {
+      await axios.post(url, formData, config);
+    }
+
+    setProjectModalOpen(false);
+    setEditingProject(null);
+    setSuccess(id ? "Project updated successfully." : "Project added successfully.");
+    await loadProjects();
+  };
+
+  const deleteProject = async (project) => {
     const confirmed = window.confirm(
-      "Delete this project? This cannot be undone."
+      `Are you sure you want to delete "${project.title}"? This action cannot be undone.`
     );
 
     if (!confirmed) return;
 
+    setError("");
+    setSuccess("");
+
     try {
       await axios.delete(
-        `${apiBase}/projects/${id}`,
+        `${apiBase}/projects/${encodeURIComponent(project._id)}`,
         authHeaders
       );
-
+      setSuccess("Project deleted successfully.");
       await loadProjects();
-    } catch (error) {
-      console.error(error);
-
-      alert(
-        error?.response?.data?.message ||
-          "Failed to delete project."
+    } catch (err) {
+      console.error("Unable to delete project:", err);
+      setError(
+        err.response?.data?.message || "Unable to delete this project."
       );
     }
   };
 
-  const openAddProject = () => {
-    setModalProject({
-      ...emptyForm,
-    });
+  const updateSEOField = (slug, field, value) => {
+    setSeoPages((current) =>
+      current.map((page) =>
+        page.slug === slug ? { ...page, [field]: value } : page
+      )
+    );
   };
 
-  const openEditProject = (project) => {
-    setModalProject({
-      ...project,
+  const saveSEOSettings = async (page) => {
+    if (!page.title?.trim()) {
+      setSeoError(`Please enter a title for the ${page.pageName} page.`);
+      return;
+    }
 
-      techStack: Array.isArray(project.techStack)
-        ? project.techStack.join(", ")
-        : project.techStack || "",
+    setSeoSaving(page.slug);
+    setSeoError("");
+    setSeoMessage("");
 
-      existingImages:
-        project.images || [],
+    try {
+      await axios.put(
+        `${apiBase}/seo/${encodeURIComponent(page.slug)}`,
+        {
+          pageName: page.pageName,
+          title: page.title.trim(),
+          description: (page.description || "").trim(),
+        },
+        authHeaders
+      );
 
-      existingDownloadFile:
-        project.downloadFile || "",
+      setSeoMessage(`${page.pageName} SEO settings saved successfully.`);
+    } catch (err) {
+      console.error("Unable to save SEO settings:", err);
+      setSeoError(
+        err.response?.data?.message ||
+          `Unable to save ${page.pageName} SEO settings.`
+      );
+    } finally {
+      setSeoSaving("");
+    }
+  };
 
-      existingDownloadFileName:
-        project.downloadFileName || "",
+  const getCoverImage = (project) => {
+    if (project.thumbnail) return project.thumbnail;
 
-      removeImages: [],
-      newImages: [],
-      newDownloadFile: null,
-    });
+    if (Array.isArray(project.images) && project.images.length) {
+      const first = project.images[0];
+      return typeof first === "string" ? first : first?.url || "";
+    }
+
+    return "";
   };
 
   return (
     <div className="admin-dashboard">
-
-      {/* HEADER */}
-
       <header className="admin-header">
         <div className="admin-header-inner">
-
           <div className="admin-brand">
-            <div className="admin-brand-icon">
-              KP
-            </div>
-
+            <div className="admin-brand-icon">KP</div>
             <div>
-              <span>ADMIN PANEL</span>
-              <strong>
-                Portfolio Manager
-              </strong>
+              <span>PORTFOLIO MANAGEMENT</span>
+              <strong>Admin Dashboard</strong>
             </div>
           </div>
 
           <div className="admin-user">
             <div className="admin-user-info">
-              <span>
-                Welcome back
-              </span>
-
-              <strong>
-                {admin?.name || "Admin"}
-              </strong>
+              <span>Logged in as</span>
+              <strong>{admin?.email || "Administrator"}</strong>
             </div>
-
-            <button
-              onClick={logout}
-              className="btn btn-outline"
-            >
-              Log out
+            <button type="button" className="btn btn-outline" onClick={logout}>
+              Logout
             </button>
           </div>
-
         </div>
       </header>
 
-      {/* MAIN */}
-
       <main className="admin-main">
-
         <section className="admin-toolbar">
           <div>
-            <p className="eyebrow">
-              PORTFOLIO
-            </p>
-
-            <h1 className="admin-title">
-              Projects
-            </h1>
-
+            <p className="eyebrow">ADMIN PANEL</p>
+            <h1 className="admin-title">Dashboard</h1>
             <p className="admin-description">
-              Manage your portfolio projects,
-              case studies and media.
+              Manage your portfolio projects, messages and SEO settings.
             </p>
           </div>
 
-          <button
-            onClick={openAddProject}
-            className="btn btn-primary"
-          >
-            + Add Project
-          </button>
-        </section>
-
-        {/* STATS */}
-
-        <section className="project-stats">
-
-          <div className="stat-card">
-            <span>
-              Total Projects
-            </span>
-
-            <strong>
-              {projects.length}
-            </strong>
-          </div>
-
-          <div className="stat-card">
-            <span>
-              Featured
-            </span>
-
-            <strong>
-              {
-                projects.filter(
-                  (p) => p.featured
-                ).length
-              }
-            </strong>
-          </div>
-
-          <div className="stat-card">
-            <span>
-              Images
-            </span>
-
-            <strong>
-              {projects.reduce(
-                (total, p) =>
-                  total +
-                  (p.images?.length || 0),
-                0
-              )}
-            </strong>
-          </div>
-
-          <div className="stat-card">
-            <span>
-              Case Studies
-            </span>
-
-            <strong>
-              {
-                projects.filter(
-                  (p) => p.downloadFile
-                ).length
-              }
-            </strong>
-          </div>
-
-        </section>
-
-        {/* PROJECTS */}
-
-        <section className="projects-section">
-
-          <div className="projects-heading">
-            <div>
-              <h2>
-                All Projects
-              </h2>
-
-              <p>
-                Your portfolio project library
-              </p>
-            </div>
-
-            <span className="project-count">
-              {projects.length} projects
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="empty-row">
-              Loading projects...
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="empty-row">
-              No projects yet — add your first
-              project above.
-            </div>
-          ) : (
-            <div className="admin-project-grid">
-
-              {projects.map((project) => (
-                <article
-                  className="admin-project-card"
-                  key={project._id}
-                >
-
-                  {/* IMAGE */}
-
-                  <div className="project-card-image">
-
-                    {project.images?.[0] ? (
-                      <img
-                        src={project.images[0]}
-                        alt={project.title}
-                      />
-                    ) : (
-                      <div className="no-image">
-                        No Image
-                      </div>
-                    )}
-
-                    <span className="category-badge">
-                      {project.category}
-                    </span>
-
-                    {project.featured && (
-                      <span className="featured-badge">
-                        ★ Featured
-                      </span>
-                    )}
-                  </div>
-
-                  {/* CONTENT */}
-
-                  <div className="project-card-content">
-
-                    <h3>
-                      {project.title}
-                    </h3>
-
-                    <p>
-                      {project.description?.length >
-                      130
-                        ? `${project.description.substring(
-                            0,
-                            130
-                          )}...`
-                        : project.description}
-                    </p>
-
-                    {/* TECH */}
-
-                    {project.techStack?.length >
-                      0 && (
-                      <div className="project-tags">
-                        {project.techStack
-                          .slice(0, 4)
-                          .map(
-                            (tech, index) => (
-                              <span
-                                key={`${tech}-${index}`}
-                              >
-                                {tech}
-                              </span>
-                            )
-                          )}
-                      </div>
-                    )}
-
-                    {/* ASSETS */}
-
-                    <div className="project-assets">
-
-                      <span>
-                        🖼{" "}
-                        {project.images?.length ||
-                          0}{" "}
-                        Images
-                      </span>
-
-                      <span>
-                        📄{" "}
-                        {project.downloadFile
-                          ? "PDF"
-                          : "No PDF"}
-                      </span>
-
-                    </div>
-
-                    {/* ACTIONS */}
-
-                    <div className="project-actions">
-
-                      <button
-                        className="edit-link"
-                        onClick={() =>
-                          openEditProject(
-                            project
-                          )
-                        }
-                      >
-                        Edit
-                      </button>
-
-                      {project.downloadFile && (
-                        <a
-                          href={
-                            project.downloadFile
-                          }
-                          target="_blank"
-                          rel="noreferrer"
-                          className="view-link"
-                        >
-                          View PDF
-                        </a>
-                      )}
-
-                      <button
-                        className="delete-link"
-                        onClick={() =>
-                          handleDelete(
-                            project._id
-                          )
-                        }
-                      >
-                        Delete
-                      </button>
-
-                    </div>
-
-                  </div>
-                </article>
-              ))}
-
-            </div>
+          {activeTab === "projects" && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={openAddProject}
+            >
+              + Add Project
+            </button>
           )}
         </section>
+
+        <nav className="admin-tabs" aria-label="Admin sections">
+          <button
+            type="button"
+            className={`admin-tab ${activeTab === "projects" ? "active" : ""}`}
+            onClick={() => setActiveTab("projects")}
+          >
+            Projects <span className="tab-count">{projects.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`admin-tab ${activeTab === "messages" ? "active" : ""}`}
+            onClick={() => setActiveTab("messages")}
+          >
+            Messages <span className="tab-count">{contacts.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`admin-tab ${activeTab === "seo" ? "active" : ""}`}
+            onClick={() => setActiveTab("seo")}
+          >
+            SEO Settings
+          </button>
+        </nav>
+
+        {error && (
+          <div className="dashboard-alert error-alert" role="alert">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="dashboard-alert success-alert" role="status">
+            {success}
+          </div>
+        )}
+
+        {activeTab === "projects" && (
+          <>
+            <div className="project-stats">
+              <article className="stat-card">
+                <span>Total projects</span>
+                <strong>{projects.length}</strong>
+              </article>
+              <article className="stat-card">
+                <span>Featured projects</span>
+                <strong>{projects.filter((project) => project.featured).length}</strong>
+              </article>
+              <article className="stat-card">
+                <span>Video projects</span>
+                <strong>{projects.filter((project) => project.projectType === "video").length}</strong>
+              </article>
+              <article className="stat-card">
+                <span>Projects with PDF</span>
+                <strong>{projects.filter((project) => project.downloadFile).length}</strong>
+              </article>
+            </div>
+
+            <section className="projects-section">
+              <div className="projects-heading">
+                <div>
+                  <h2>Projects</h2>
+                  <p>Manage the projects displayed in your portfolio.</p>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={loadProjects}
+                  disabled={loading}
+                >
+                  {loading ? "Refreshing..." : "Refresh"}
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="empty-row">Loading projects...</div>
+              ) : projects.length === 0 ? (
+                <div className="empty-row empty-projects">
+                  <div className="empty-icon">+</div>
+                  <h3>No projects yet</h3>
+                  <p>Add your first portfolio project to get started.</p>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={openAddProject}
+                  >
+                    Add Your First Project
+                  </button>
+                </div>
+              ) : (
+                <div className="admin-project-grid">
+                  {projects.map((project) => {
+                    const coverImage = getCoverImage(project);
+                    const techStack = Array.isArray(project.techStack)
+                      ? project.techStack
+                      : String(project.techStack || "")
+                          .split(",")
+                          .map((item) => item.trim())
+                          .filter(Boolean);
+
+                    return (
+                      <article className="admin-project-card" key={project._id}>
+                        <div className="project-card-image">
+                          {coverImage ? (
+                            <img src={coverImage} alt={project.title || "Project"} />
+                          ) : (
+                            <div className="no-image">
+                              {project.projectType === "video"
+                                ? "Video Project"
+                                : "No Image"}
+                            </div>
+                          )}
+
+                          <span className="category-badge">
+                            {project.category || "Uncategorized"}
+                          </span>
+
+                          {project.featured && (
+                            <span className="featured-badge">★ Featured</span>
+                          )}
+                        </div>
+
+                        <div className="project-card-content">
+                          <div className="project-card-meta">
+                            <span>
+                              {project.projectType === "video" ? "Video" : "Image / Case Study"}
+                            </span>
+                            <span>Order: {project.order ?? 0}</span>
+                          </div>
+
+                          <h3>{project.title}</h3>
+
+                          <p className="project-description">
+                            {project.description || "No description provided."}
+                          </p>
+
+                          {techStack.length > 0 && (
+                            <div className="project-tags">
+                              {techStack.slice(0, 4).map((tech, index) => (
+                                <span key={`${tech}-${index}`}>{tech}</span>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="project-card-meta">
+                            <span>{project.images?.length || 0} images</span>
+                            <span>{project.downloadFile ? "PDF attached" : "No PDF"}</span>
+                          </div>
+
+                          <div className="project-actions">
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              onClick={() => openEditProject(project)}
+                            >
+                              Edit Project
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-danger"
+                              onClick={() => deleteProject(project)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+
+        {activeTab === "messages" && (
+          <section className="projects-section">
+            <div className="projects-heading">
+              <div>
+                <h2>Messages</h2>
+                <p>Messages submitted through your website contact form.</p>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={loadContacts}
+                disabled={contactsLoading}
+              >
+                {contactsLoading ? "Loading..." : "Refresh"}
+              </button>
+            </div>
+
+            {contactsLoading ? (
+              <div className="empty-row">Loading messages...</div>
+            ) : contacts.length === 0 ? (
+              <div className="empty-row">No contact messages found.</div>
+            ) : (
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Message</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contacts.map((contact, index) => (
+                      <tr key={contact._id || index}>
+                        <td>{contact.name || "—"}</td>
+                        <td>{contact.email || "—"}</td>
+                        <td>{contact.message || "—"}</td>
+                        <td>
+                          {contact.createdAt
+                            ? new Date(contact.createdAt).toLocaleDateString()
+                            : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeTab === "seo" && (
+          <section className="projects-section">
+            <div className="projects-heading">
+              <div>
+                <h2>SEO Settings</h2>
+                <p>Manage page titles and meta descriptions.</p>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={loadSEOSettings}
+                disabled={seoLoading}
+              >
+                {seoLoading ? "Loading..." : "Refresh"}
+              </button>
+            </div>
+
+            {seoMessage && (
+              <div className="dashboard-alert success-alert" role="status">
+                {seoMessage}
+              </div>
+            )}
+
+            {seoError && (
+              <div className="dashboard-alert error-alert" role="alert">
+                {seoError}
+              </div>
+            )}
+
+            {seoLoading ? (
+              <div className="empty-row">Loading SEO settings...</div>
+            ) : (
+              <div className="seo-settings-list">
+                {seoPages.map((page) => (
+                  <article className="seo-setting-card" key={page.slug}>
+                    <p className="eyebrow">PAGE: {page.slug.toUpperCase()}</p>
+                    <h3>{page.pageName}</h3>
+
+                    <label className="form-field">
+                      Page title
+                      <input
+                        value={page.title || ""}
+                        maxLength={70}
+                        placeholder={`${page.pageName} | Your Brand`}
+                        onChange={(event) =>
+                          updateSEOField(page.slug, "title", event.target.value)
+                        }
+                      />
+                      <small>{(page.title || "").length}/70 characters</small>
+                    </label>
+
+                    <label className="form-field" style={{ marginTop: 18 }}>
+                      Meta description
+                      <textarea
+                        rows={4}
+                        maxLength={320}
+                        value={page.description || ""}
+                        placeholder={`Write a search description for the ${page.pageName} page.`}
+                        onChange={(event) =>
+                          updateSEOField(
+                            page.slug,
+                            "description",
+                            event.target.value
+                          )
+                        }
+                      />
+                      <small>
+                        {(page.description || "").length}/320 characters
+                      </small>
+                    </label>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={seoSaving === page.slug}
+                      onClick={() => saveSEOSettings(page)}
+                    >
+                      {seoSaving === page.slug ? "Saving..." : "Save SEO Settings"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
-      {/* MODAL */}
-
-      {modalProject && (
+      {projectModalOpen && (
         <ProjectModal
-          initial={modalProject}
-          onClose={() =>
-            setModalProject(null)
-          }
-          onSave={handleSave}
+          initial={editingProject}
+          onClose={() => {
+            setProjectModalOpen(false);
+            setEditingProject(null);
+          }}
+          onSave={saveProject}
         />
       )}
     </div>

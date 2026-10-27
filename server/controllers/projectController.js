@@ -2,19 +2,14 @@ import Project from "../models/Project.js";
 import imagekit from "../config/imagekit.js";
 import { toFile } from "@imagekit/nodejs";
 
-// =========================================
-// Upload a file to ImageKit
-// =========================================
+const MAX_IMAGE_SIZE = 25 * 1024 * 1024;
+const MAX_DOCUMENT_SIZE = 25 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
 
 const uploadToImageKit = async (file, folder) => {
-  if (!file || !file.buffer) {
-    return null;
-  }
+  if (!file || !file.buffer) return null;
 
-  const imageKitFile = await toFile(
-    file.buffer,
-    file.originalname
-  );
+  const imageKitFile = await toFile(file.buffer, file.originalname);
 
   const response = await imagekit.files.upload({
     file: imageKitFile,
@@ -29,10 +24,81 @@ const uploadToImageKit = async (file, folder) => {
   };
 };
 
-// =========================================
-// GET /api/projects
-// =========================================
+const getFile = (req, fieldName) => {
+  return req.files?.[fieldName]?.[0] || null;
+};
 
+const validateFileSize = (file, maxSize, label) => {
+  if (file && file.size > maxSize) {
+    throw new Error(`${label} must not exceed ${maxSize / (1024 * 1024)} MB.`);
+  }
+};
+
+const validateProjectFiles = (req) => {
+  const images = req.files?.images || [];
+  const thumbnail = getFile(req, "thumbnail");
+  const video = getFile(req, "video");
+  const downloadFile = getFile(req, "downloadFile");
+
+  for (const image of images) {
+    validateFileSize(image, MAX_IMAGE_SIZE, "Each project image");
+  }
+
+  validateFileSize(thumbnail, MAX_IMAGE_SIZE, "Thumbnail");
+  validateFileSize(video, MAX_VIDEO_SIZE, "Video");
+  validateFileSize(downloadFile, MAX_DOCUMENT_SIZE, "Case-study document");
+};
+
+const parseTechStack = (techStack) => {
+  if (Array.isArray(techStack)) return techStack;
+
+  if (typeof techStack === "string") {
+    return techStack
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+const uploadImages = async (files, folder) => {
+  const uploadedImages = [];
+
+  for (const file of files || []) {
+    const uploaded = await uploadToImageKit(file, folder);
+
+    if (uploaded) {
+      uploadedImages.push(uploaded.url);
+    }
+  }
+
+  return uploadedImages;
+};
+
+const uploadThumbnail = async (file) => {
+  if (!file) return undefined;
+
+  const uploaded = await uploadToImageKit(
+    file,
+    "/kushparekh-portfolio/thumbnails"
+  );
+
+  return uploaded?.url;
+};
+
+const uploadVideo = async (file) => {
+  if (!file) return undefined;
+
+  const uploaded = await uploadToImageKit(
+    file,
+    "/kushparekh-portfolio/videos"
+  );
+
+  return uploaded?.url;
+};
+
+// GET all projects
 export const getProjects = async (req, res) => {
   try {
     const projects = await Project.find().sort({
@@ -49,10 +115,7 @@ export const getProjects = async (req, res) => {
   }
 };
 
-// =========================================
-// GET /api/projects/:id
-// =========================================
-
+// GET one project
 export const getProjectById = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -72,12 +135,11 @@ export const getProjectById = async (req, res) => {
   }
 };
 
-// =========================================
-// POST /api/projects
-// =========================================
-
+// CREATE project
 export const createProject = async (req, res) => {
   try {
+    validateProjectFiles(req);
+
     const {
       title,
       description,
@@ -87,76 +149,90 @@ export const createProject = async (req, res) => {
       liveLink,
       featured,
       order,
+      projectType,
+      videoSource,
+      videoUrl,
     } = req.body;
 
-    // -----------------------------------------
-    // Upload project images to ImageKit
-    // -----------------------------------------
+    if (!title || !description || !category) {
+      return res.status(400).json({
+        message: "Title, description and category are required.",
+      });
+    }
 
-    const imageFiles = req.files?.images || [];
-    const uploadedImages = [];
+    const finalProjectType = projectType === "video" ? "video" : "image";
 
-    for (const file of imageFiles) {
-      const uploaded = await uploadToImageKit(
-        file,
-        "/kushparekh-portfolio/projects"
-      );
+    const finalVideoSource =
+      videoSource === "external" ? "external" : "upload";
 
-      if (uploaded) {
-        uploadedImages.push(uploaded.url);
+    const videoFile = getFile(req, "video");
+    const thumbnailFile = getFile(req, "thumbnail");
+
+    if (finalProjectType === "video") {
+      if (finalVideoSource === "upload" && !videoFile) {
+        return res.status(400).json({
+          message: "Please upload a video file.",
+        });
+      }
+
+      if (
+        finalVideoSource === "external" &&
+        (!videoUrl || !videoUrl.trim())
+      ) {
+        return res.status(400).json({
+          message: "Please provide an external video URL.",
+        });
       }
     }
 
-    // -----------------------------------------
-    // Upload case study to ImageKit
-    // -----------------------------------------
+    const uploadedImages = await uploadImages(
+      req.files?.images,
+      "/kushparekh-portfolio/projects"
+    );
 
-    const downloadFileObj =
-      req.files?.downloadFile?.[0];
+    const uploadedVideo =
+      finalProjectType === "video" && finalVideoSource === "upload"
+        ? await uploadVideo(videoFile)
+        : undefined;
 
+    const uploadedThumbnail = await uploadThumbnail(thumbnailFile);
+
+    const downloadFileObj = getFile(req, "downloadFile");
     let downloadFileUrl;
     let downloadFileName;
 
     if (downloadFileObj) {
-      const uploadedDownload =
-        await uploadToImageKit(
-          downloadFileObj,
-          "/kushparekh-portfolio/case-studies"
-        );
+      const uploadedDownload = await uploadToImageKit(
+        downloadFileObj,
+        "/kushparekh-portfolio/case-studies"
+      );
 
       if (uploadedDownload) {
         downloadFileUrl = uploadedDownload.url;
-        downloadFileName =
-          downloadFileObj.originalname;
+        downloadFileName = downloadFileObj.originalname;
       }
     }
-
-    // -----------------------------------------
-    // Create project
-    // -----------------------------------------
 
     const project = await Project.create({
       title,
       description,
       category,
-
-      techStack: techStack
-        ? techStack
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : [],
-
+      techStack: parseTechStack(techStack),
       githubLink,
       liveLink,
-
       images: uploadedImages,
-
+      projectType: finalProjectType,
+      videoSource: finalProjectType === "video" ? finalVideoSource : "upload",
+      videoUrl:
+        finalProjectType === "video"
+          ? finalVideoSource === "external"
+            ? videoUrl.trim()
+            : uploadedVideo
+          : undefined,
+      thumbnail: uploadedThumbnail,
       downloadFile: downloadFileUrl,
       downloadFileName,
-
-      featured: featured === "true",
-
+      featured: featured === "true" || featured === true,
       order: order ? Number(order) : 0,
     });
 
@@ -164,19 +240,19 @@ export const createProject = async (req, res) => {
   } catch (err) {
     console.error("Create project error:", err);
 
-    res.status(500).json({
-      message: "Server error",
-      error: err.message,
+    const isSizeError = err.message.includes("must not exceed");
+
+    res.status(isSizeError ? 413 : 500).json({
+      message: err.message || "Server error",
     });
   }
 };
 
-// =========================================
-// PUT /api/projects/:id
-// =========================================
-
+// UPDATE project
 export const updateProject = async (req, res) => {
   try {
+    validateProjectFiles(req);
+
     const project = await Project.findById(req.params.id);
 
     if (!project) {
@@ -195,50 +271,42 @@ export const updateProject = async (req, res) => {
       featured,
       order,
       removeImages,
+      projectType,
+      videoSource,
+      videoUrl,
     } = req.body;
 
-    // -----------------------------------------
-    // Update basic fields
-    // -----------------------------------------
-
-    if (title !== undefined) {
-      project.title = title;
-    }
-
-    if (description !== undefined) {
-      project.description = description;
-    }
-
-    if (category !== undefined) {
-      project.category = category;
-    }
+    if (title !== undefined) project.title = title;
+    if (description !== undefined) project.description = description;
+    if (category !== undefined) project.category = category;
 
     if (techStack !== undefined) {
-      project.techStack = techStack
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+      project.techStack = parseTechStack(techStack);
     }
 
-    if (githubLink !== undefined) {
-      project.githubLink = githubLink;
-    }
-
-    if (liveLink !== undefined) {
-      project.liveLink = liveLink;
-    }
+    if (githubLink !== undefined) project.githubLink = githubLink;
+    if (liveLink !== undefined) project.liveLink = liveLink;
 
     if (featured !== undefined) {
-      project.featured = featured === "true";
+      project.featured = featured === "true" || featured === true;
     }
 
     if (order !== undefined) {
       project.order = Number(order);
     }
 
-    // -----------------------------------------
-    // Remove selected images
-    // -----------------------------------------
+    if (projectType !== undefined) {
+      project.projectType = projectType === "video" ? "video" : "image";
+    }
+
+    if (videoSource !== undefined) {
+      project.videoSource =
+        videoSource === "external" ? "external" : "upload";
+    }
+
+    if (videoUrl !== undefined) {
+      project.videoUrl = videoUrl.trim();
+    }
 
     if (removeImages) {
       try {
@@ -246,70 +314,70 @@ export const updateProject = async (req, res) => {
 
         if (Array.isArray(toRemove)) {
           project.images = project.images.filter(
-            (img) => !toRemove.includes(img)
+            (image) => !toRemove.includes(image)
           );
         }
       } catch (error) {
-        console.error(
-          "Invalid removeImages value:",
-          error
-        );
+        console.error("Invalid removeImages value:", error);
       }
     }
 
-    // -----------------------------------------
-    // Upload newly added images
-    // -----------------------------------------
-
-    const newImageFiles =
-      req.files?.images || [];
+    const newImageFiles = req.files?.images || [];
 
     if (newImageFiles.length > 0) {
-      const newImages = [];
+      const newImages = await uploadImages(
+        newImageFiles,
+        "/kushparekh-portfolio/projects"
+      );
 
-      for (const file of newImageFiles) {
-        const uploaded = await uploadToImageKit(
-          file,
-          "/kushparekh-portfolio/projects"
-        );
-
-        if (uploaded) {
-          newImages.push(uploaded.url);
-        }
-      }
-
-      project.images = [
-        ...project.images,
-        ...newImages,
-      ];
+      project.images = [...project.images, ...newImages];
     }
 
-    // -----------------------------------------
-    // Replace case study
-    // -----------------------------------------
+    const videoFile = getFile(req, "video");
+    const thumbnailFile = getFile(req, "thumbnail");
+    const downloadFileObj = getFile(req, "downloadFile");
 
-    const downloadFileObj =
-      req.files?.downloadFile?.[0];
+    if (videoFile) {
+      project.videoUrl = await uploadVideo(videoFile);
+      project.projectType = "video";
+      project.videoSource = "upload";
+    }
+
+    if (thumbnailFile) {
+      project.thumbnail = await uploadThumbnail(thumbnailFile);
+    }
 
     if (downloadFileObj) {
-      const uploadedDownload =
-        await uploadToImageKit(
-          downloadFileObj,
-          "/kushparekh-portfolio/case-studies"
-        );
+      const uploadedDownload = await uploadToImageKit(
+        downloadFileObj,
+        "/kushparekh-portfolio/case-studies"
+      );
 
       if (uploadedDownload) {
-        project.downloadFile =
-          uploadedDownload.url;
-
-        project.downloadFileName =
-          downloadFileObj.originalname;
+        project.downloadFile = uploadedDownload.url;
+        project.downloadFileName = downloadFileObj.originalname;
       }
     }
 
-    // -----------------------------------------
-    // Save project
-    // -----------------------------------------
+    if (project.projectType === "video") {
+      if (
+        project.videoSource === "external" &&
+        !project.videoUrl
+      ) {
+        return res.status(400).json({
+          message: "Please provide an external video URL.",
+        });
+      }
+
+      if (
+        project.videoSource === "upload" &&
+        !project.videoUrl
+      ) {
+        return res.status(400).json({
+          message: "Please upload a video file.",
+        });
+      }
+    }
 
     await project.save();
 
@@ -317,36 +385,24 @@ export const updateProject = async (req, res) => {
   } catch (err) {
     console.error("Update project error:", err);
 
-    res.status(500).json({
-      message: "Server error",
-      error: err.message,
+    const isSizeError = err.message.includes("must not exceed");
+
+    res.status(isSizeError ? 413 : 500).json({
+      message: err.message || "Server error",
     });
   }
 };
 
-// =========================================
-// DELETE /api/projects/:id
-// =========================================
-
+// DELETE project
 export const deleteProject = async (req, res) => {
   try {
-    const project = await Project.findById(
-      req.params.id
-    );
+    const project = await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({
         message: "Project not found",
       });
     }
-
-    /*
-      Project files are stored on ImageKit.
-
-      We delete the MongoDB project record here.
-      The ImageKit files are not deleted from the
-      local Render/server filesystem.
-    */
 
     await project.deleteOne();
 
@@ -363,30 +419,20 @@ export const deleteProject = async (req, res) => {
   }
 };
 
-// =========================================
-// GET /api/projects/:id/download
-// =========================================
-
+// DOWNLOAD case-study file
 export const downloadProject = async (req, res) => {
   try {
-    const project = await Project.findById(
-      req.params.id
-    );
+    const project = await Project.findById(req.params.id);
 
     if (!project || !project.downloadFile) {
       return res.status(404).json({
-        message:
-          "No downloadable file for this project",
+        message: "No downloadable file for this project",
       });
     }
 
-    // Redirect directly to ImageKit
     res.redirect(project.downloadFile);
   } catch (err) {
-    console.error(
-      "Download project error:",
-      err
-    );
+    console.error("Download project error:", err);
 
     res.status(500).json({
       message: "Server error",
