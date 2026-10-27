@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -10,44 +9,27 @@ const services = [
   {
     number: "01",
     name: "Search Engine Optimization",
-    label: "SEO & ORGANIC GROWTH",
     description:
-      "Build lasting search visibility with keyword research, technical SEO, on-page improvements, and a clear content strategy.",
-    icon: "↗",
+      "Improve search visibility and help the right people discover your business.",
   },
   {
     number: "02",
     name: "Google Ads",
-    label: "PAID ADVERTISING",
     description:
-      "Reach the right audience with relevant keywords, persuasive ads, and carefully optimized campaigns.",
-    icon: "◎",
+      "Reach potential customers with focused campaigns and ongoing optimization.",
   },
   {
     number: "03",
     name: "Social Media Marketing",
-    label: "SOCIAL & CONTENT",
     description:
-      "Build a recognizable brand through content planning, audience research, and purposeful social campaigns.",
-    icon: "◈",
+      "Build brand awareness and connect with your audience through relevant content.",
   },
   {
     number: "04",
-    name: "Email Marketing",
-    label: "RETENTION & ENGAGEMENT",
+    name: "Content Marketing",
     description:
-      "Strengthen customer relationships with thoughtful email campaigns and performance-driven improvements.",
-    icon: "✳",
+      "Share useful content that communicates your value and supports your marketing goals.",
   },
-];
-
-const capabilities = [
-  "SEO",
-  "Google Ads",
-  "Meta Ads",
-  "Content Marketing",
-  "Social Media",
-  "Performance Analysis",
 ];
 
 function ArrowIcon() {
@@ -70,57 +52,64 @@ function ArrowIcon() {
   );
 }
 
-function AnalyticsVisual() {
+function MarketingVisual() {
   return (
     <div className="home-visual">
       <div className="home-visual-top">
         <div>
           <span className="home-visual-overline">
-            THE DIGITAL PLAYBOOK
+            DIGITAL MARKETING
           </span>
-          <h2>Growth, by design.</h2>
+          <h2>A clearer direction.</h2>
         </div>
 
-        <span className="home-visual-index">KP / 01</span>
+        <span className="home-visual-index">01 / 03</span>
       </div>
 
-      <div className="home-visual-main">
+      <div className="home-visual-main" aria-hidden="true">
         <div className="home-orbit home-orbit-outer" />
         <div className="home-orbit home-orbit-middle" />
         <div className="home-orbit home-orbit-inner" />
-
-        <div className="home-visual-core">
-          <span className="home-core-symbol">✳</span>
-          <span>STRATEGY</span>
-          <small>MEETS CREATIVITY</small>
-        </div>
 
         <span className="home-orbit-point home-point-one" />
         <span className="home-orbit-point home-point-two" />
         <span className="home-orbit-point home-point-three" />
 
-        <div className="home-floating-note home-note-one">
-          <span className="home-note-icon">↗</span>
-          <div>
-            <small>01 / VISIBILITY</small>
-            <strong>Be discovered.</strong>
-          </div>
+        <div className="home-visual-core">
+          <span className="home-core-symbol">↗</span>
+          <span>GROWTH</span>
+          <small>WITH PURPOSE</small>
         </div>
 
-        <div className="home-floating-note home-note-two">
-          <span className="home-note-icon">◎</span>
-          <div>
-            <small>02 / CONNECTION</small>
-            <strong>Reach the right people.</strong>
+        <article className="home-floating-note home-note-one">
+          <div className="home-note-icon">⌕</div>
+
+          <div className="home-note-content">
+            <small>01 / VISIBILITY</small>
+            <strong>Be easier to discover.</strong>
+            <p>Build a stronger search presence.</p>
+            <span className="home-note-tag">SEARCH ENGINE OPTIMIZATION</span>
           </div>
-        </div>
+        </article>
+
+        <article className="home-floating-note home-note-two">
+          <div className="home-note-icon">↗</div>
+
+          <div className="home-note-content">
+            <small>02 / PERFORMANCE</small>
+            <strong>Make every decision count.</strong>
+            <p>Use insights to improve campaigns.</p>
+            <span className="home-note-tag">STRATEGY MEETS ACTION</span>
+          </div>
+        </article>
       </div>
 
       <div className="home-visual-bottom">
+        <span className="home-live-dot" />
         <span>RESEARCH</span>
-        <span>/</span>
+        <span>·</span>
         <span>STRATEGY</span>
-        <span>/</span>
+        <span>·</span>
         <span>OPTIMIZATION</span>
       </div>
     </div>
@@ -128,8 +117,7 @@ function AnalyticsVisual() {
 }
 
 /**
- * Loads SEO settings saved through the admin dashboard.
- * Updates the document title and meta description in the browser.
+ * Loads SEO settings saved in the admin dashboard.
  */
 function usePageSEO(apiBase, slug = "home") {
   useEffect(() => {
@@ -137,7 +125,7 @@ function usePageSEO(apiBase, slug = "home") {
 
     let cancelled = false;
 
-    const loadSEO = async () => {
+    async function loadSEO() {
       try {
         const response = await axios.get(
           `${apiBase}/seo/public/${encodeURIComponent(slug)}`
@@ -147,17 +135,12 @@ function usePageSEO(apiBase, slug = "home") {
 
         const page = response.data?.page;
 
-        if (!page) {
-          console.warn(`No SEO settings found for "${slug}".`);
-          return;
-        }
+        if (!page) return;
 
-        // Update the browser tab title.
         if (typeof page.title === "string" && page.title.trim()) {
           document.title = page.title.trim();
         }
 
-        // Find or create the meta description element.
         let descriptionMeta = document.head.querySelector(
           'meta[name="description"]'
         );
@@ -168,8 +151,10 @@ function usePageSEO(apiBase, slug = "home") {
           document.head.appendChild(descriptionMeta);
         }
 
-        // Update the meta description.
-        if (typeof page.description === "string") {
+        if (
+          typeof page.description === "string" &&
+          page.description.trim()
+        ) {
           descriptionMeta.setAttribute(
             "content",
             page.description.trim()
@@ -178,12 +163,12 @@ function usePageSEO(apiBase, slug = "home") {
       } catch (error) {
         if (!cancelled) {
           console.error(
-            "Unable to load Home page SEO settings:",
+            "Unable to load homepage SEO settings:",
             error.response?.data?.message || error.message
           );
         }
       }
-    };
+    }
 
     loadSEO();
 
@@ -195,19 +180,17 @@ function usePageSEO(apiBase, slug = "home") {
 
 export default function Home() {
   const { apiBase } = useAuth();
-
   const [projects, setProjects] = useState([]);
 
-  // Apply the SEO settings saved in the admin dashboard.
   usePageSEO(apiBase, "home");
 
-  // Load featured projects.
+  // Load featured projects from the backend.
   useEffect(() => {
     if (!apiBase) return undefined;
 
     let active = true;
 
-    const loadFeaturedProjects = async () => {
+    async function loadFeaturedProjects() {
       try {
         const response = await axios.get(
           `${apiBase}/projects?featured=true&limit=3`
@@ -232,7 +215,7 @@ export default function Home() {
           setProjects([]);
         }
       }
-    };
+    }
 
     loadFeaturedProjects();
 
@@ -249,19 +232,19 @@ export default function Home() {
           <div className="home-hero-copy home-reveal">
             <div className="home-eyebrow">
               <span className="home-live-dot" />
-              DIGITAL MARKETING STRATEGIST
+              INDEPENDENT DIGITAL MARKETER
             </div>
 
             <h1 className="home-hero-title">
-              Making digital
+              Growing Brands
               <br />
-              <span>work smarter.</span>
+              <span>in a Digital World.</span>
             </h1>
 
             <p className="home-hero-description">
-              I'm Kush Parekh. I combine strategic thinking, creativity,
-              and performance-led marketing to help brands reach the
-              right audience and build a stronger online presence.
+              I'm Kush Parekh. I help businesses build a stronger
+              online presence through SEO, digital advertising,
+              and thoughtful marketing strategies.
             </p>
 
             <div className="home-hero-actions">
@@ -269,7 +252,7 @@ export default function Home() {
                 to="/projects"
                 className="home-button home-button-primary"
               >
-                Explore my work
+                View my work
                 <ArrowIcon />
               </Link>
 
@@ -284,94 +267,54 @@ export default function Home() {
 
             <div className="home-hero-footnote">
               <span className="home-footnote-line" />
-              <span>Strategy first. Meaningful growth always.</span>
+              <span>Clear strategy. Meaningful growth.</span>
             </div>
           </div>
 
           <div className="home-hero-art home-reveal home-reveal-delay">
-            <AnalyticsVisual />
-          </div>
-
-          <div className="home-hero-index">
-            <span>INDEPENDENT DIGITAL MARKETER</span>
-            <span>01 — INTRODUCTION</span>
+            <MarketingVisual />
           </div>
         </div>
 
-        <a
-          className="home-scroll-cue"
-          href="#approach"
-          aria-label="Scroll to learn about my approach"
-        >
-          <span />
-          Scroll to explore
-        </a>
-      </section>
-
-      {/* CAPABILITIES */}
-      <section
-        className="home-capabilities"
-        aria-label="Marketing capabilities"
-      >
-        <div className="home-capabilities-label">
-          WHAT I WORK WITH
-        </div>
-
-        <div className="home-capabilities-list">
-          {capabilities.map((capability, index) => (
-            <span className="home-capability" key={capability}>
-              {capability}
-
-              {index < capabilities.length - 1 && (
-                <span className="home-capability-dot">✳</span>
-              )}
-            </span>
-          ))}
+        <div className="home-hero-index">
+          <span>KUSH PAREKH / DIGITAL MARKETING</span>
+          <span>01 — INTRODUCTION</span>
         </div>
       </section>
 
       {/* ABOUT / APPROACH */}
       <section className="home-section home-intro" id="approach">
         <div className="home-section-topline">
-          <span>01 / THE APPROACH</span>
-          <span>THINK CLEARLY. MARKET INTENTIONALLY.</span>
+          <span>01 / ABOUT</span>
+          <span>A PRACTICAL APPROACH TO MARKETING</span>
         </div>
 
         <div className="home-intro-grid">
           <div className="home-intro-heading">
             <span className="home-section-kicker">
-              BEHIND THE STRATEGY
+              THE WAY I WORK
             </span>
 
             <h2>
-              Good marketing
+              Marketing with
               <br />
-              starts with
-              <br />
-              <span>understanding.</span>
+              <span>purpose.</span>
             </h2>
           </div>
 
           <div className="home-intro-content">
             <p className="home-intro-lead">
-              The best marketing doesn't begin with a channel.
-              It begins with people.
+              Good marketing starts with understanding people.
             </p>
 
             <p>
-              Understanding your audience, market, and business goals
-              creates a stronger foundation for every campaign,
-              message, and decision.
-            </p>
-
-            <p>
-              My approach combines research, thoughtful execution,
-              and performance analysis to support real business
-              objectives.
+              I bring research, creative thinking, and performance
+              insights together to help businesses make more informed
+              digital marketing decisions.
             </p>
 
             <Link to="/about" className="home-inline-link">
-              More about my approach
+              More about me
               <ArrowIcon />
             </Link>
           </div>
@@ -382,7 +325,7 @@ export default function Home() {
             <span className="home-principle-number">01</span>
             <div>
               <h3>Understand</h3>
-              <p>Learn about the audience, market, and business.</p>
+              <p>Start with the audience and business goals.</p>
             </div>
             <span className="home-principle-arrow">↗</span>
           </article>
@@ -391,7 +334,7 @@ export default function Home() {
             <span className="home-principle-number">02</span>
             <div>
               <h3>Strategize</h3>
-              <p>Choose channels and actions with a clear purpose.</p>
+              <p>Choose the right channels and priorities.</p>
             </div>
             <span className="home-principle-arrow">↗</span>
           </article>
@@ -399,8 +342,8 @@ export default function Home() {
           <article className="home-principle">
             <span className="home-principle-number">03</span>
             <div>
-              <h3>Optimize</h3>
-              <p>Measure performance and identify opportunities.</p>
+              <h3>Improve</h3>
+              <p>Learn from results and refine the approach.</p>
             </div>
             <span className="home-principle-arrow">↗</span>
           </article>
@@ -412,19 +355,19 @@ export default function Home() {
         <section className="home-section home-work" id="work">
           <div className="home-section-topline">
             <span>02 / SELECTED WORK</span>
-            <span>IDEAS INTO ACTION</span>
+            <span>PROJECTS AND CASE STUDIES</span>
           </div>
 
           <div className="home-heading-row">
             <div>
               <span className="home-section-kicker">
-                PROJECT HIGHLIGHTS
+                A FEW HIGHLIGHTS
               </span>
 
               <h2>
-                Selected work.
+                Selected
                 <br />
-                <span>Real thinking.</span>
+                <span>work.</span>
               </h2>
             </div>
 
@@ -449,27 +392,26 @@ export default function Home() {
       {/* SERVICES */}
       <section className="home-section home-services" id="services">
         <div className="home-section-topline">
-          <span>03 / EXPERTISE</span>
-          <span>FROM PLANNING TO PERFORMANCE</span>
+          <span>03 / SERVICES</span>
+          <span>HOW I CAN HELP</span>
         </div>
 
         <div className="home-heading-row home-services-heading">
           <div>
             <span className="home-section-kicker">
-              WHAT I CAN HELP WITH
+              DIGITAL MARKETING
             </span>
 
             <h2>
-              The right tools.
+              The right strategy.
               <br />
-              <span>A clearer direction.</span>
+              <span>The right channels.</span>
             </h2>
           </div>
 
           <p>
-            Every brand has different needs. The right mix of marketing
-            channels should support your goals, audience, and stage
-            of growth.
+            Practical services to improve online visibility,
+            reach relevant audiences, and support business goals.
           </p>
         </div>
 
@@ -481,23 +423,19 @@ export default function Home() {
               </span>
 
               <div className="home-service-copy">
-                <span className="home-service-label">
-                  {service.label}
-                </span>
-
                 <h3>{service.name}</h3>
                 <p>{service.description}</p>
               </div>
 
               <span className="home-service-icon" aria-hidden="true">
-                {service.icon}
+                ↗
               </span>
             </article>
           ))}
         </div>
       </section>
 
-      {/* CONTACT CTA */}
+      {/* CONTACT */}
       <section className="home-contact" id="contact-cta">
         <div className="home-contact-inner">
           <div className="home-contact-decoration" aria-hidden="true">
@@ -505,19 +443,19 @@ export default function Home() {
           </div>
 
           <span className="home-section-kicker">
-            HAVE A PROJECT IN MIND?
+            LET'S CONNECT
           </span>
 
           <h2>
-            Let's make your
+            Have a project
             <br />
-            next move <span>meaningful.</span>
+            <span>in mind?</span>
           </h2>
 
           <div className="home-contact-bottom">
             <p>
-              Let's talk about your goals and explore how a thoughtful
-              digital strategy can help your brand move forward.
+              Tell me about your goals, and let's explore how
+              digital marketing can help your business move forward.
             </p>
 
             <Link
