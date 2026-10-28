@@ -226,15 +226,19 @@ function ProjectModal({ initial, onClose, onSave }) {
       form.videoSource === "external" &&
       !/^https?:\/\//i.test(form.videoUrl.trim())
     ) {
-      setError("Enter a valid external video URL starting with http:// or https://.");
+      setError(
+        "Enter a valid external video URL starting with http:// or https://."
+      );
       return;
     }
 
+    // FIX: Check videoUrl because the database stores the existing
+    // uploaded or external video URL in initial.videoUrl, not initial.video.
     if (
       form.projectType === "video" &&
       form.videoSource === "upload" &&
       !form.newVideo &&
-      !initial?.video
+      !(initial?.video || initial?.videoUrl)
     ) {
       setError("Please upload a video file.");
       return;
@@ -262,6 +266,8 @@ function ProjectModal({ initial, onClose, onSave }) {
       order: String(Number(form.order) || 0),
       projectType: form.projectType,
       videoSource: form.videoSource,
+
+      // FIX: Preserve the existing video URL when editing project details.
       videoUrl: form.videoUrl.trim(),
     };
 
@@ -301,9 +307,12 @@ function ProjectModal({ initial, onClose, onSave }) {
   };
 
   return (
-    <div className="modal-overlay" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
+    <div
+      className="modal-overlay"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <form className="modal-panel" onSubmit={handleSubmit}>
         <div className="modal-header">
           <div>
@@ -424,7 +433,8 @@ function ProjectModal({ initial, onClose, onSave }) {
                     ...previous,
                     projectType,
                     newVideo: null,
-                    videoUrl: projectType === "video" ? previous.videoUrl : "",
+                    videoUrl:
+                      projectType === "video" ? previous.videoUrl : "",
                   }));
                 }}
               >
@@ -472,10 +482,17 @@ function ProjectModal({ initial, onClose, onSave }) {
                       accept="video/mp4,video/webm,video/quicktime,.m4v"
                       onChange={handleVideoChange}
                     />
+
                     {form.newVideo && <small>{form.newVideo.name}</small>}
-                    {!form.newVideo && initial?.video && (
-                      <small>Existing video will be retained if no new file is selected.</small>
-                    )}
+
+                    {/* FIX: Use videoUrl to detect an existing uploaded video. */}
+                    {!form.newVideo &&
+                      (initial?.video || initial?.videoUrl) && (
+                        <small>
+                          Existing video will be retained if no new file is
+                          selected.
+                        </small>
+                      )}
                   </label>
                 )}
 
@@ -484,7 +501,11 @@ function ProjectModal({ initial, onClose, onSave }) {
                     <video
                       src={videoPreview}
                       controls
-                      style={{ width: "100%", maxHeight: 260, borderRadius: 10 }}
+                      style={{
+                        width: "100%",
+                        maxHeight: 260,
+                        borderRadius: 10,
+                      }}
                     />
                   </div>
                 )}
@@ -533,13 +554,17 @@ function ProjectModal({ initial, onClose, onSave }) {
             {form.existingImages.length > 0 && (
               <div className="full">
                 <p className="eyebrow">EXISTING IMAGES</p>
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill,minmax(100px,1fr))",
-                  gap: 12,
-                }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill,minmax(100px,1fr))",
+                    gap: 12,
+                  }}
+                >
                   {form.existingImages.map((image, index) => {
-                    const src = typeof image === "string" ? image : image.url;
+                    const src =
+                      typeof image === "string" ? image : image.url;
+
                     return (
                       <div key={`${src}-${index}`}>
                         <img
@@ -552,6 +577,7 @@ function ProjectModal({ initial, onClose, onSave }) {
                             borderRadius: 8,
                           }}
                         />
+
                         <button
                           type="button"
                           className="btn btn-danger"
@@ -569,9 +595,7 @@ function ProjectModal({ initial, onClose, onSave }) {
 
             {form.newImages.length > 0 && (
               <div className="full">
-                <small>
-                  {form.newImages.length} new image(s) selected
-                </small>
+                <small>{form.newImages.length} new image(s) selected</small>
               </div>
             )}
 
@@ -582,11 +606,15 @@ function ProjectModal({ initial, onClose, onSave }) {
                 accept="application/pdf,.pdf"
                 onChange={handlePdfChange}
               />
+
               <small>
                 Maximum 25 MB.
                 {form.existingDownloadFile &&
-                  ` Existing file: ${form.existingDownloadFileName || "PDF attached"}`}
+                  ` Existing file: ${
+                    form.existingDownloadFileName || "PDF attached"
+                  }`}
               </small>
+
               {form.newDownloadFile && (
                 <small>Selected: {form.newDownloadFile.name}</small>
               )}
@@ -601,7 +629,9 @@ function ProjectModal({ initial, onClose, onSave }) {
                 onChange={changeField}
                 min="0"
               />
-              <small>Lower numbers appear first if your public page sorts by order.</small>
+              <small>
+                Lower numbers appear first if your public page sorts by order.
+              </small>
             </label>
 
             <label className="form-field checkbox-field">
@@ -611,6 +641,7 @@ function ProjectModal({ initial, onClose, onSave }) {
                 checked={Boolean(form.featured)}
                 onChange={changeField}
               />
+
               <span>
                 <strong>Featured project</strong>
                 <small>Mark this project as featured.</small>
@@ -628,12 +659,13 @@ function ProjectModal({ initial, onClose, onSave }) {
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saving}
-          >
-            {saving ? "Saving..." : initial?._id ? "Save Changes" : "Add Project"}
+
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving
+              ? "Saving..."
+              : initial?._id
+                ? "Save Changes"
+                : "Add Project"}
           </button>
         </div>
       </form>
@@ -798,7 +830,10 @@ export default function AdminDashboard() {
 
     setProjectModalOpen(false);
     setEditingProject(null);
-    setSuccess(id ? "Project updated successfully." : "Project added successfully.");
+    setSuccess(
+      id ? "Project updated successfully." : "Project added successfully."
+    );
+
     await loadProjects();
   };
 
@@ -817,6 +852,7 @@ export default function AdminDashboard() {
         `${apiBase}/projects/${encodeURIComponent(project._id)}`,
         authHeaders
       );
+
       setSuccess("Project deleted successfully.");
       await loadProjects();
     } catch (err) {
@@ -896,6 +932,7 @@ export default function AdminDashboard() {
               <span>Logged in as</span>
               <strong>{admin?.email || "Administrator"}</strong>
             </div>
+
             <button type="button" className="btn btn-outline" onClick={logout}>
               Logout
             </button>
@@ -927,7 +964,9 @@ export default function AdminDashboard() {
         <nav className="admin-tabs" aria-label="Admin sections">
           <button
             type="button"
-            className={`admin-tab ${activeTab === "projects" ? "active" : ""}`}
+            className={`admin-tab ${
+              activeTab === "projects" ? "active" : ""
+            }`}
             onClick={() => setActiveTab("projects")}
           >
             Projects <span className="tab-count">{projects.length}</span>
@@ -935,7 +974,9 @@ export default function AdminDashboard() {
 
           <button
             type="button"
-            className={`admin-tab ${activeTab === "messages" ? "active" : ""}`}
+            className={`admin-tab ${
+              activeTab === "messages" ? "active" : ""
+            }`}
             onClick={() => setActiveTab("messages")}
           >
             Messages <span className="tab-count">{contacts.length}</span>
@@ -969,17 +1010,30 @@ export default function AdminDashboard() {
                 <span>Total projects</span>
                 <strong>{projects.length}</strong>
               </article>
+
               <article className="stat-card">
                 <span>Featured projects</span>
-                <strong>{projects.filter((project) => project.featured).length}</strong>
+                <strong>
+                  {projects.filter((project) => project.featured).length}
+                </strong>
               </article>
+
               <article className="stat-card">
                 <span>Video projects</span>
-                <strong>{projects.filter((project) => project.projectType === "video").length}</strong>
+                <strong>
+                  {
+                    projects.filter(
+                      (project) => project.projectType === "video"
+                    ).length
+                  }
+                </strong>
               </article>
+
               <article className="stat-card">
                 <span>Projects with PDF</span>
-                <strong>{projects.filter((project) => project.downloadFile).length}</strong>
+                <strong>
+                  {projects.filter((project) => project.downloadFile).length}
+                </strong>
               </article>
             </div>
 
@@ -1007,6 +1061,7 @@ export default function AdminDashboard() {
                   <div className="empty-icon">+</div>
                   <h3>No projects yet</h3>
                   <p>Add your first portfolio project to get started.</p>
+
                   <button
                     type="button"
                     className="btn btn-primary"
@@ -1027,10 +1082,16 @@ export default function AdminDashboard() {
                           .filter(Boolean);
 
                     return (
-                      <article className="admin-project-card" key={project._id}>
+                      <article
+                        className="admin-project-card"
+                        key={project._id}
+                      >
                         <div className="project-card-image">
                           {coverImage ? (
-                            <img src={coverImage} alt={project.title || "Project"} />
+                            <img
+                              src={coverImage}
+                              alt={project.title || "Project"}
+                            />
                           ) : (
                             <div className="no-image">
                               {project.projectType === "video"
@@ -1044,14 +1105,18 @@ export default function AdminDashboard() {
                           </span>
 
                           {project.featured && (
-                            <span className="featured-badge">★ Featured</span>
+                            <span className="featured-badge">
+                              ★ Featured
+                            </span>
                           )}
                         </div>
 
                         <div className="project-card-content">
                           <div className="project-card-meta">
                             <span>
-                              {project.projectType === "video" ? "Video" : "Image / Case Study"}
+                              {project.projectType === "video"
+                                ? "Video"
+                                : "Image / Case Study"}
                             </span>
                             <span>Order: {project.order ?? 0}</span>
                           </div>
@@ -1072,7 +1137,11 @@ export default function AdminDashboard() {
 
                           <div className="project-card-meta">
                             <span>{project.images?.length || 0} images</span>
-                            <span>{project.downloadFile ? "PDF attached" : "No PDF"}</span>
+                            <span>
+                              {project.downloadFile
+                                ? "PDF attached"
+                                : "No PDF"}
+                            </span>
                           </div>
 
                           <div className="project-actions">
@@ -1083,6 +1152,7 @@ export default function AdminDashboard() {
                             >
                               Edit Project
                             </button>
+
                             <button
                               type="button"
                               className="btn btn-danger"
@@ -1134,6 +1204,7 @@ export default function AdminDashboard() {
                       <th>Date</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {contacts.map((contact, index) => (
                       <tr key={contact._id || index}>
@@ -1142,7 +1213,9 @@ export default function AdminDashboard() {
                         <td>{contact.message || "—"}</td>
                         <td>
                           {contact.createdAt
-                            ? new Date(contact.createdAt).toLocaleDateString()
+                            ? new Date(
+                                contact.createdAt
+                              ).toLocaleDateString()
                             : "—"}
                         </td>
                       </tr>
@@ -1200,13 +1273,22 @@ export default function AdminDashboard() {
                         maxLength={70}
                         placeholder={`${page.pageName} | Your Brand`}
                         onChange={(event) =>
-                          updateSEOField(page.slug, "title", event.target.value)
+                          updateSEOField(
+                            page.slug,
+                            "title",
+                            event.target.value
+                          )
                         }
                       />
-                      <small>{(page.title || "").length}/70 characters</small>
+                      <small>
+                        {(page.title || "").length}/70 characters
+                      </small>
                     </label>
 
-                    <label className="form-field" style={{ marginTop: 18 }}>
+                    <label
+                      className="form-field"
+                      style={{ marginTop: 18 }}
+                    >
                       Meta description
                       <textarea
                         rows={4}
@@ -1232,7 +1314,9 @@ export default function AdminDashboard() {
                       disabled={seoSaving === page.slug}
                       onClick={() => saveSEOSettings(page)}
                     >
-                      {seoSaving === page.slug ? "Saving..." : "Save SEO Settings"}
+                      {seoSaving === page.slug
+                        ? "Saving..."
+                        : "Save SEO Settings"}
                     </button>
                   </article>
                 ))}

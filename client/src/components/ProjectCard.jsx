@@ -159,7 +159,7 @@ export default function ProjectCard({
         {/* COVER FOOTER */}
         <div className="project-card-image-footer">
           <span className="project-card-image-type">
-            {isVideo ? "VIDEO PROJECT" : "PROJECT CASE STUDY"}
+            {isVideo ? "VIDEO" : "PROJECT CASE STUDY"}
           </span>
 
           <span className="project-card-image-arrow">↗</span>

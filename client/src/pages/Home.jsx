@@ -32,6 +32,24 @@ const services = [
   },
 ];
 
+const principles = [
+  {
+    number: "01",
+    title: "Understand",
+    text: "Start with the audience and the business goals behind every campaign.",
+  },
+  {
+    number: "02",
+    title: "Strategize",
+    text: "Choose the right channels and priorities before spending a rupee.",
+  },
+  {
+    number: "03",
+    title: "Improve",
+    text: "Learn from the results and keep refining the approach.",
+  },
+];
+
 function ArrowIcon() {
   return (
     <svg
@@ -44,7 +62,7 @@ function ArrowIcon() {
       <path
         d="M7 17 17 7M7 7h10v10"
         stroke="currentColor"
-        strokeWidth="1.7"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -57,12 +75,9 @@ function MarketingVisual() {
     <div className="home-visual">
       <div className="home-visual-top">
         <div>
-          <span className="home-visual-overline">
-            DIGITAL MARKETING
-          </span>
+          <span className="home-visual-overline">DIGITAL MARKETING</span>
           <h2>A clearer direction.</h2>
         </div>
-
         <span className="home-visual-index">01 / 03</span>
       </div>
 
@@ -77,40 +92,35 @@ function MarketingVisual() {
 
         <div className="home-visual-core">
           <span className="home-core-symbol">↗</span>
-          <span>GROWTH</span>
-          <small>WITH PURPOSE</small>
+          <span className="home-core-label">GROWTH</span>
         </div>
 
         <article className="home-floating-note home-note-one">
           <div className="home-note-icon">⌕</div>
-
           <div className="home-note-content">
-            <small>01 / VISIBILITY</small>
+            <small>VISIBILITY</small>
             <strong>Be easier to discover.</strong>
             <p>Build a stronger search presence.</p>
-            <span className="home-note-tag">SEARCH ENGINE OPTIMIZATION</span>
           </div>
         </article>
 
         <article className="home-floating-note home-note-two">
           <div className="home-note-icon">↗</div>
-
           <div className="home-note-content">
-            <small>02 / PERFORMANCE</small>
+            <small>PERFORMANCE</small>
             <strong>Make every decision count.</strong>
             <p>Use insights to improve campaigns.</p>
-            <span className="home-note-tag">STRATEGY MEETS ACTION</span>
           </div>
         </article>
       </div>
 
       <div className="home-visual-bottom">
         <span className="home-live-dot" />
-        <span>RESEARCH</span>
-        <span>·</span>
-        <span>STRATEGY</span>
-        <span>·</span>
-        <span>OPTIMIZATION</span>
+        <span>Research</span>
+        <span className="home-sep">·</span>
+        <span>Strategy</span>
+        <span className="home-sep">·</span>
+        <span>Optimization</span>
       </div>
     </div>
   );
@@ -134,7 +144,6 @@ function usePageSEO(apiBase, slug = "home") {
         if (cancelled) return;
 
         const page = response.data?.page;
-
         if (!page) return;
 
         if (typeof page.title === "string" && page.title.trim()) {
@@ -151,14 +160,8 @@ function usePageSEO(apiBase, slug = "home") {
           document.head.appendChild(descriptionMeta);
         }
 
-        if (
-          typeof page.description === "string" &&
-          page.description.trim()
-        ) {
-          descriptionMeta.setAttribute(
-            "content",
-            page.description.trim()
-          );
+        if (typeof page.description === "string" && page.description.trim()) {
+          descriptionMeta.setAttribute("content", page.description.trim());
         }
       } catch (error) {
         if (!cancelled) {
@@ -176,6 +179,43 @@ function usePageSEO(apiBase, slug = "home") {
       cancelled = true;
     };
   }, [apiBase, slug]);
+}
+
+/**
+ * Fades elements in as they scroll into view.
+ * Elements opt in with the data-reveal attribute.
+ * Content stays visible if IntersectionObserver is unavailable.
+ */
+function useScrollReveal(dependency) {
+  const [armed, setArmed] = useState(false);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return undefined;
+
+    setArmed(true);
+
+    const targets = document.querySelectorAll(
+      ".home-page [data-reveal]:not(.is-visible)"
+    );
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
+    );
+
+    targets.forEach((target) => observer.observe(target));
+
+    return () => observer.disconnect();
+  }, [dependency]);
+
+  return armed;
 }
 
 export default function Home() {
@@ -211,7 +251,6 @@ export default function Home() {
             "Failed to load featured projects:",
             error.response?.data?.message || error.message
           );
-
           setProjects([]);
         }
       }
@@ -224,42 +263,38 @@ export default function Home() {
     };
   }, [apiBase]);
 
+  const armed = useScrollReveal(projects.length);
+
   return (
-    <main className="home-page">
+    <main className={`home-page${armed ? " is-armed" : ""}`}>
       {/* HERO */}
       <section className="home-hero" id="top">
         <div className="home-hero-grid">
           <div className="home-hero-copy home-reveal">
             <div className="home-eyebrow">
               <span className="home-live-dot" />
-              INDEPENDENT DIGITAL MARKETER
+              Independent digital marketer
             </div>
 
             <h1 className="home-hero-title">
-              Growing Brands
+              Growing brands
               <br />
-              <span>in a Digital World.</span>
+              <span>in a digital world.</span>
             </h1>
 
             <p className="home-hero-description">
-              I'm Kush Parekh. I help businesses build a stronger
-              online presence through SEO, digital advertising,
-              and thoughtful marketing strategies.
+              I'm Kush Parekh. I help businesses build a stronger online
+              presence through SEO, digital advertising, and thoughtful
+              marketing strategies.
             </p>
 
             <div className="home-hero-actions">
-              <Link
-                to="/projects"
-                className="home-button home-button-primary"
-              >
+              <Link to="/projects" className="home-button home-button-primary">
                 View my work
                 <ArrowIcon />
               </Link>
 
-              <Link
-                to="/contact"
-                className="home-button home-button-ghost"
-              >
+              <Link to="/contact" className="home-button home-button-ghost">
                 Let's talk
                 <ArrowIcon />
               </Link>
@@ -276,25 +311,19 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="home-hero-index">
-          <span>KUSH PAREKH / DIGITAL MARKETING</span>
-          <span>01 — INTRODUCTION</span>
-        </div>
+        <ul className="home-strip" aria-label="Areas of focus">
+          <li>SEO</li>
+          <li>Google Ads</li>
+          <li>Social Media</li>
+          <li>Content</li>
+        </ul>
       </section>
 
       {/* ABOUT / APPROACH */}
       <section className="home-section home-intro" id="approach">
-        <div className="home-section-topline">
-          <span>01 / ABOUT</span>
-          <span>A PRACTICAL APPROACH TO MARKETING</span>
-        </div>
-
-        <div className="home-intro-grid">
+        <div className="home-intro-grid" data-reveal>
           <div className="home-intro-heading">
-            <span className="home-section-kicker">
-              THE WAY I WORK
-            </span>
-
+            <span className="home-section-kicker">THE WAY I WORK</span>
             <h2>
               Marketing with
               <br />
@@ -306,13 +335,11 @@ export default function Home() {
             <p className="home-intro-lead">
               Good marketing starts with understanding people.
             </p>
-
             <p>
-              I bring research, creative thinking, and performance
-              insights together to help businesses make more informed
-              digital marketing decisions.
+              I bring research, creative thinking, and performance insights
+              together to help businesses make more informed digital
+              marketing decisions.
             </p>
-
             <Link to="/about" className="home-inline-link">
               More about me
               <ArrowIcon />
@@ -321,49 +348,27 @@ export default function Home() {
         </div>
 
         <div className="home-principles">
-          <article className="home-principle">
-            <span className="home-principle-number">01</span>
-            <div>
-              <h3>Understand</h3>
-              <p>Start with the audience and business goals.</p>
-            </div>
-            <span className="home-principle-arrow">↗</span>
-          </article>
-
-          <article className="home-principle">
-            <span className="home-principle-number">02</span>
-            <div>
-              <h3>Strategize</h3>
-              <p>Choose the right channels and priorities.</p>
-            </div>
-            <span className="home-principle-arrow">↗</span>
-          </article>
-
-          <article className="home-principle">
-            <span className="home-principle-number">03</span>
-            <div>
-              <h3>Improve</h3>
-              <p>Learn from results and refine the approach.</p>
-            </div>
-            <span className="home-principle-arrow">↗</span>
-          </article>
+          {principles.map((item, index) => (
+            <article
+              className="home-principle"
+              key={item.number}
+              data-reveal
+              style={{ "--delay": `${index * 90}ms` }}
+            >
+              <span className="home-principle-number">{item.number}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
         </div>
       </section>
 
       {/* FEATURED PROJECTS */}
       {projects.length > 0 && (
         <section className="home-section home-work" id="work">
-          <div className="home-section-topline">
-            <span>02 / SELECTED WORK</span>
-            <span>PROJECTS AND CASE STUDIES</span>
-          </div>
-
-          <div className="home-heading-row">
+          <div className="home-heading-row" data-reveal>
             <div>
-              <span className="home-section-kicker">
-                A FEW HIGHLIGHTS
-              </span>
-
+              <span className="home-section-kicker">A FEW HIGHLIGHTS</span>
               <h2>
                 Selected
                 <br />
@@ -378,12 +383,15 @@ export default function Home() {
           </div>
 
           <div className="home-project-grid">
-            {projects.map((project) => (
-              <ProjectCard
+            {projects.map((project, index) => (
+              <div
+                className="home-project-item"
                 key={project._id}
-                project={project}
-                showDownload={false}
-              />
+                data-reveal
+                style={{ "--delay": `${index * 90}ms` }}
+              >
+                <ProjectCard project={project} showDownload={false} />
+              </div>
             ))}
           </div>
         </section>
@@ -391,17 +399,9 @@ export default function Home() {
 
       {/* SERVICES */}
       <section className="home-section home-services" id="services">
-        <div className="home-section-topline">
-          <span>03 / SERVICES</span>
-          <span>HOW I CAN HELP</span>
-        </div>
-
-        <div className="home-heading-row home-services-heading">
+        <div className="home-heading-row" data-reveal>
           <div>
-            <span className="home-section-kicker">
-              DIGITAL MARKETING
-            </span>
-
+            <span className="home-section-kicker">DIGITAL MARKETING</span>
             <h2>
               The right strategy.
               <br />
@@ -409,24 +409,23 @@ export default function Home() {
             </h2>
           </div>
 
-          <p>
-            Practical services to improve online visibility,
-            reach relevant audiences, and support business goals.
+          <p className="home-heading-note">
+            Practical services to improve online visibility, reach relevant
+            audiences, and support business goals.
           </p>
         </div>
 
         <div className="home-service-list">
-          {services.map((service) => (
-            <article className="home-service" key={service.number}>
-              <span className="home-service-number">
-                {service.number}
-              </span>
-
-              <div className="home-service-copy">
-                <h3>{service.name}</h3>
-                <p>{service.description}</p>
-              </div>
-
+          {services.map((service, index) => (
+            <article
+              className="home-service"
+              key={service.number}
+              data-reveal
+              style={{ "--delay": `${index * 70}ms` }}
+            >
+              <span className="home-service-number">{service.number}</span>
+              <h3>{service.name}</h3>
+              <p>{service.description}</p>
               <span className="home-service-icon" aria-hidden="true">
                 ↗
               </span>
@@ -437,14 +436,12 @@ export default function Home() {
 
       {/* CONTACT */}
       <section className="home-contact" id="contact-cta">
-        <div className="home-contact-inner">
+        <div className="home-contact-inner" data-reveal>
           <div className="home-contact-decoration" aria-hidden="true">
             KP<span>.</span>
           </div>
 
-          <span className="home-section-kicker">
-            LET'S CONNECT
-          </span>
+          <span className="home-section-kicker">LET'S CONNECT</span>
 
           <h2>
             Have a project
@@ -454,14 +451,11 @@ export default function Home() {
 
           <div className="home-contact-bottom">
             <p>
-              Tell me about your goals, and let's explore how
-              digital marketing can help your business move forward.
+              Tell me about your goals, and let's explore how digital
+              marketing can help your business move forward.
             </p>
 
-            <Link
-              to="/contact"
-              className="home-button home-button-primary"
-            >
+            <Link to="/contact" className="home-button home-button-primary">
               Start a conversation
               <ArrowIcon />
             </Link>
