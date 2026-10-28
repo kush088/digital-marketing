@@ -99,7 +99,7 @@ export default function Navbar() {
               <span className="logo-period">.</span>
             </span>
 
-            <span className="logo-tagline">DIGITAL MARKETING</span>
+            
           </span>
         </Link>
 
