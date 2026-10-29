@@ -1,66 +1,84 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../context/AuthContext.jsx";
 import "./ProjectDetail.css";
 
-export default function ProjectDetail() {
+const API_BASE =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+const isValidExternalLink = (url) => {
+  if (!url || typeof url !== "string") return false;
+
+  try {
+    const parsedUrl = new URL(url.trim());
+
+    return (
+      parsedUrl.protocol === "https:" ||
+      parsedUrl.protocol === "http:"
+    );
+  } catch {
+    return false;
+  }
+};
+
+const ProjectDetail = () => {
   const { id } = useParams();
-  const { apiBase } = useAuth();
 
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let active = true;
+    let isMounted = true;
 
-    async function fetchProject() {
-      setLoading(true);
-      setError("");
-      setProject(null);
-
+    const fetchProject = async () => {
       try {
-        const response = await axios.get(`${apiBase}/projects/${id}`);
+        setLoading(true);
+        setError("");
 
-        const data = response.data?.project ?? response.data;
+        const response = await axios.get(
+          `${API_BASE}/projects/${id}`
+        );
 
-        if (active) {
-          setProject(data);
+        const projectData =
+          response.data?.project ||
+          response.data?.data ||
+          response.data;
+
+        if (!projectData || !projectData._id) {
+          throw new Error("Project not found.");
+        }
+
+        if (isMounted) {
+          setProject(projectData);
         }
       } catch (err) {
-        console.error("Failed to load project:", err);
+        console.error("Error fetching project:", err);
 
-        if (active) {
-          setError("This project could not be loaded.");
+        if (isMounted) {
+          setError(
+            "Unable to load this project. Please try again later."
+          );
         }
       } finally {
-        if (active) {
+        if (isMounted) {
           setLoading(false);
         }
       }
-    }
+    };
 
-    if (apiBase && id) {
-      fetchProject();
-    } else {
-      setLoading(false);
-      setError("Project information is unavailable.");
-    }
+    fetchProject();
 
     return () => {
-      active = false;
+      isMounted = false;
     };
-  }, [apiBase, id]);
+  }, [id]);
 
   if (loading) {
     return (
       <main className="project-detail-page">
-        <div className="project-detail-container">
-          <div className="project-detail-status" role="status">
-            <span className="project-detail-spinner" />
-            <p>Loading project...</p>
-          </div>
+        <div className="project-detail-status">
+          Loading project...
         </div>
       </main>
     );
@@ -69,14 +87,12 @@ export default function ProjectDetail() {
   if (error || !project) {
     return (
       <main className="project-detail-page">
-        <div className="project-detail-container">
-          <div className="project-detail-status">
-            <h1>Project unavailable</h1>
-            <p>{error || "This project could not be found."}</p>
-            <Link to="/projects" className="project-detail-button">
-              ← Back to Work
-            </Link>
-          </div>
+        <div className="project-detail-status">
+          <p>{error || "Project not found."}</p>
+
+          <Link to="/projects" className="project-detail-back">
+            ← Back to Work
+          </Link>
         </div>
       </main>
     );
@@ -86,261 +102,222 @@ export default function ProjectDetail() {
     title,
     description,
     category,
-    images = [],
     techStack = [],
-    projectType,
-    videoUrl,
+    images = [],
+    projectType = "image",
     videoSource,
+    videoUrl,
     thumbnail,
-    liveUrl,
-    websiteUrl,
-    projectUrl,
-    githubUrl,
+    liveLink,
+    githubLink,
     downloadFile,
   } = project;
 
-  const getMediaUrl = (value) => {
-    if (!value || typeof value !== "string") return "";
+  const validLiveLink = isValidExternalLink(liveLink)
+    ? liveLink.trim()
+    : "";
 
-    if (/^https?:\/\//i.test(value)) {
-      return value;
-    }
+  const validGithubLink = isValidExternalLink(githubLink)
+    ? githubLink.trim()
+    : "";
 
-    return `${apiBase.replace(/\/api\/?$/, "")}/${value.replace(/^\/+/, "")}`;
-  };
+  const validVideoLink = isValidExternalLink(videoUrl)
+    ? videoUrl.trim()
+    : "";
 
-  const mainImage = getMediaUrl(images?.[0]);
-  const galleryImages = Array.isArray(images)
-    ? images.slice(1).map(getMediaUrl).filter(Boolean)
+  const projectImages = Array.isArray(images)
+    ? images
+        .map((image) =>
+          typeof image === "string" ? image : image?.url
+        )
+        .filter(Boolean)
     : [];
 
-  const mediaUrl = getMediaUrl(videoUrl);
-  const thumbnailUrl = getMediaUrl(thumbnail);
+  const isVideoProject = projectType === "video";
 
-  const isYouTube =
-    videoSource === "external" &&
-    /(?:youtube\.com|youtu\.be)/i.test(videoUrl || "");
+  const videoIsExternal =
+    videoSource === "external" && validVideoLink;
 
-  const isVimeo =
-    videoSource === "external" &&
-    /vimeo\.com/i.test(videoUrl || "");
+  const videoIsUploaded =
+    videoSource === "upload" && validVideoLink;
 
-  const getEmbedUrl = (url) => {
-    if (!url) return "";
-
-    try {
-      const parsed = new URL(url);
-
-      if (parsed.hostname.includes("youtu.be")) {
-        return `https://www.youtube-nocookie.com/embed/${parsed.pathname.slice(1)}`;
-      }
-
-      if (parsed.hostname.includes("youtube.com")) {
-        const videoId = parsed.searchParams.get("v");
-
-        if (videoId) {
-          return `https://www.youtube-nocookie.com/embed/${videoId}`;
-        }
-
-        if (parsed.pathname.startsWith("/embed/")) {
-          return `https://www.youtube-nocookie.com${parsed.pathname}`;
-        }
-      }
-
-      if (parsed.hostname.includes("vimeo.com")) {
-        const videoId = parsed.pathname.split("/").filter(Boolean).pop();
-
-        if (videoId && /^\d+$/.test(videoId)) {
-          return `https://player.vimeo.com/video/${videoId}`;
-        }
-      }
-    } catch {
-      return "";
-    }
-
-    return "";
-  };
-
-  const embedUrl = getEmbedUrl(videoUrl);
-
-  const links = [
-    {
-      label: "View Live Project",
-      url: liveUrl || websiteUrl || projectUrl,
-    },
-    {
-      label: "View Source Code",
-      url: githubUrl,
-    },
-  ].filter((item) => item.url);
+  const mediaItems = projectImages;
 
   return (
     <main className="project-detail-page">
       <div className="project-detail-container">
-        {/* Navigation */}
-        <nav className="project-detail-nav" aria-label="Breadcrumb">
+        <div className="project-detail-top">
           <Link to="/projects" className="project-detail-back">
-            <span aria-hidden="true">←</span> Back to Work
+            <span aria-hidden="true">←</span>
+            <span>Back to Work</span>
           </Link>
 
           {category && (
-            <span className="project-detail-category">{category}</span>
+            <span className="project-detail-category">
+              {category}
+            </span>
           )}
-        </nav>
+        </div>
 
-        {/* Project introduction */}
-        <header className="project-detail-header">
-          <span className="project-detail-eyebrow">
-            PROJECT OVERVIEW
-          </span>
+        <section className="project-detail-content">
+          <div className="project-detail-overview">
+            <span className="project-detail-eyebrow">
+              PROJECT OVERVIEW
+            </span>
 
-          <h1 className="project-detail-title">
-            {title || "Untitled Project"}
-            <span>.</span>
-          </h1>
+            <h1 className="project-detail-title">
+              {title}
+            </h1>
 
-          {description && (
-            <p className="project-detail-description">{description}</p>
-          )}
+            {description && (
+              <p className="project-detail-description">
+                {description}
+              </p>
+            )}
 
-          {techStack.length > 0 && (
-            <div className="project-detail-tech">
-              {techStack.map((tech, index) => (
-                <span key={`${tech}-${index}`} className="project-detail-tag">
-                  {tech}
-                </span>
-              ))}
-            </div>
-          )}
-        </header>
-
-        {/* Main media */}
-        {(projectType === "video" && mediaUrl) || mainImage ? (
-          <section
-            className="project-detail-media"
-            aria-label="Project preview"
-          >
-            {projectType === "video" && mediaUrl ? (
-              isYouTube || isVimeo ? (
-                embedUrl ? (
-                  <iframe
-                    src={embedUrl}
-                    title={`${title || "Project"} video`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    loading="lazy"
-                  />
-                ) : (
-                  <a
-                    href={videoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="project-detail-media-fallback"
+            {Array.isArray(techStack) && techStack.length > 0 && (
+              <div className="project-detail-tech">
+                {techStack.map((technology, index) => (
+                  <span
+                    className="project-detail-tech-item"
+                    key={`${technology}-${index}`}
                   >
-                    Watch project video ↗
+                    {technology}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {(validLiveLink || validGithubLink) && (
+              <div className="project-detail-actions">
+                {validLiveLink && (
+                  <a
+                    href={validLiveLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="project-detail-live-button"
+                  >
+                    <span>Visit Live Project</span>
+                    <span
+                      className="project-detail-button-arrow"
+                      aria-hidden="true"
+                    >
+                      ↗
+                    </span>
                   </a>
-                )
-              ) : (
+                )}
+
+                {validGithubLink && (
+                  <a
+                    href={validGithubLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="project-detail-github-button"
+                  >
+                    <span>View Source Code</span>
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="project-detail-media">
+            {isVideoProject && videoIsExternal && (
+              <div className="project-detail-video">
+                <iframe
+                  src={validVideoLink}
+                  title={`${title} video`}
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            )}
+
+            {isVideoProject && videoIsUploaded && (
+              <div className="project-detail-video">
                 <video
                   controls
                   playsInline
                   preload="metadata"
-                  poster={thumbnailUrl || mainImage || undefined}
+                  poster={thumbnail || undefined}
                 >
-                  <source src={mediaUrl} />
+                  <source src={validVideoLink} />
                   Your browser does not support video playback.
                 </video>
-              )
-            ) : (
-              <img
-                src={mainImage}
-                alt={title || "Project preview"}
-                fetchPriority="high"
-              />
-            )}
-          </section>
-        ) : null}
-
-        {/* Additional project images */}
-        {galleryImages.length > 0 && (
-          <section className="project-detail-gallery">
-            <div className="project-detail-section-heading">
-              <div>
-                <span className="project-detail-eyebrow">
-                  VISUALS
-                </span>
-                <h2>Project gallery</h2>
               </div>
+            )}
 
-              <span className="project-detail-gallery-count">
-                {String(galleryImages.length).padStart(2, "0")} IMAGES
-              </span>
-            </div>
+            {!videoIsExternal &&
+              !videoIsUploaded &&
+              mediaItems.length > 0 && (
+                <div className="project-detail-gallery">
+                  {mediaItems.map((imageUrl, index) => (
+                    <figure
+                      className="project-detail-image"
+                      key={`${imageUrl}-${index}`}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`${title} - Image ${index + 1}`}
+                        loading={index === 0 ? "eager" : "lazy"}
+                      />
+                    </figure>
+                  ))}
+                </div>
+              )}
 
-            <div className="project-detail-gallery-grid">
-              {galleryImages.map((image, index) => (
-                <figure
-                  className="project-detail-gallery-item"
-                  key={`${image}-${index}`}
-                >
+            {!videoIsExternal &&
+              !videoIsUploaded &&
+              mediaItems.length === 0 &&
+              thumbnail && (
+                <figure className="project-detail-image">
                   <img
-                    src={image}
-                    alt={`${title || "Project"} preview ${index + 2}`}
-                    loading="lazy"
+                    src={thumbnail}
+                    alt={`${title} preview`}
                   />
                 </figure>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Project links */}
-        {links.length > 0 && (
-          <section className="project-detail-links">
-            <div>
-              <span className="project-detail-eyebrow">
-                EXPLORE FURTHER
-              </span>
-              <h2>Project links</h2>
-            </div>
-
-            <div className="project-detail-link-list">
-              {links.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="project-detail-link"
-                >
-                  <span>{link.label}</span>
-                  <span aria-hidden="true">↗</span>
-                </a>
-              ))}
-
-              {downloadFile && (
-                <a
-                  href={getMediaUrl(downloadFile)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="project-detail-link"
-                >
-                  <span>Download project file</span>
-                  <span aria-hidden="true">↓</span>
-                </a>
               )}
-            </div>
-          </section>
-        )}
+          </div>
 
-        {/* Footer navigation */}
-        <footer className="project-detail-footer">
-          <p>Interested in my work?</p>
-          <Link to="/projects" className="project-detail-footer-link">
-            Explore more projects <span aria-hidden="true">↗</span>
+          {downloadFile && (
+            <div className="project-detail-download">
+              <a
+                href={downloadFile}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="project-detail-download-button"
+              >
+                Download Project File ↗
+              </a>
+            </div>
+          )}
+        </section>
+
+        <section className="project-detail-cta">
+          <span className="project-detail-eyebrow">
+            BUILT FOR GROWTH
+          </span>
+
+          <h2>Interested in my work?</h2>
+
+          <p>
+            Digital Marketer helping brands reach the right
+            audience and grow online.
+          </p>
+
+          <Link
+            to="/projects"
+            className="project-detail-explore-button"
+          >
+            Explore More Projects
+            <span aria-hidden="true">↗</span>
           </Link>
-        </footer>
+        </section>
       </div>
     </main>
   );
-}
+};
+
+export default ProjectDetail;

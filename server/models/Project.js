@@ -1,3 +1,4 @@
+
 import mongoose from "mongoose";
 
 const projectSchema = new mongoose.Schema(
@@ -13,44 +14,48 @@ const projectSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Project category
     category: {
       type: String,
       required: true,
       trim: true,
     },
 
-    techStack: [{ type: String, trim: true }],
+    techStack: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
 
-    // Existing image-project support
+    // Project images
     images: [{ type: String }],
 
-    // Media type: image project or video project
+    // Image or video project
     projectType: {
       type: String,
       enum: ["image", "video"],
       default: "image",
     },
 
-    // Video source: uploaded file or external URL
+    // Uploaded video or external video URL
     videoSource: {
       type: String,
       enum: ["upload", "external"],
       default: "upload",
     },
 
-    // Uploaded video URL or external video URL
     videoUrl: {
       type: String,
       trim: true,
     },
 
-    // Custom thumbnail used for video cards and previews
+    // Video thumbnail
     thumbnail: {
       type: String,
       trim: true,
     },
 
+    // Project links
     githubLink: {
       type: String,
       trim: true,
@@ -61,6 +66,7 @@ const projectSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Downloadable case-study document
     downloadFile: {
       type: String,
     },
@@ -69,17 +75,27 @@ const projectSchema = new mongoose.Schema(
       type: String,
     },
 
+    // Existing featured-project functionality
     featured: {
       type: Boolean,
       default: false,
     },
 
+    // Controls homepage visibility independently of featured
+    showOnHome: {
+      type: Boolean,
+      default: true,
+    },
+
+    // Project display order
     order: {
       type: Number,
       default: 0,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 export default mongoose.model("Project", projectSchema);

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -183,8 +184,7 @@ function usePageSEO(apiBase, slug = "home") {
 
 /**
  * Fades elements in as they scroll into view.
- * Elements opt in with the data-reveal attribute.
- * Content stays visible if IntersectionObserver is unavailable.
+ * Content remains visible if IntersectionObserver is unavailable.
  */
 function useScrollReveal(dependency) {
   const [armed, setArmed] = useState(false);
@@ -224,16 +224,16 @@ export default function Home() {
 
   usePageSEO(apiBase, "home");
 
-  // Load featured projects from the backend.
+  // Load projects selected for the homepage in the admin panel.
   useEffect(() => {
     if (!apiBase) return undefined;
 
     let active = true;
 
-    async function loadFeaturedProjects() {
+    async function loadHomeProjects() {
       try {
         const response = await axios.get(
-          `${apiBase}/projects?featured=true&limit=3`
+          `${apiBase}/projects?showOnHome=true&limit=3`
         );
 
         if (!active) return;
@@ -248,15 +248,16 @@ export default function Home() {
       } catch (error) {
         if (active) {
           console.error(
-            "Failed to load featured projects:",
+            "Failed to load homepage projects:",
             error.response?.data?.message || error.message
           );
+
           setProjects([]);
         }
       }
     }
 
-    loadFeaturedProjects();
+    loadHomeProjects();
 
     return () => {
       active = false;
@@ -335,11 +336,13 @@ export default function Home() {
             <p className="home-intro-lead">
               Good marketing starts with understanding people.
             </p>
+
             <p>
               I bring research, creative thinking, and performance insights
               together to help businesses make more informed digital
               marketing decisions.
             </p>
+
             <Link to="/about" className="home-inline-link">
               More about me
               <ArrowIcon />
@@ -363,7 +366,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURED PROJECTS */}
+      {/* HOMEPAGE PROJECTS */}
       {projects.length > 0 && (
         <section className="home-section home-work" id="work">
           <div className="home-heading-row" data-reveal>

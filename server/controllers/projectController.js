@@ -1,3 +1,4 @@
+
 import Project from "../models/Project.js";
 import imagekit from "../config/imagekit.js";
 import { toFile } from "@imagekit/nodejs";
@@ -30,7 +31,9 @@ const getFile = (req, fieldName) => {
 
 const validateFileSize = (file, maxSize, label) => {
   if (file && file.size > maxSize) {
-    throw new Error(`${label} must not exceed ${maxSize / (1024 * 1024)} MB.`);
+    throw new Error(
+      `${label} must not exceed ${maxSize / (1024 * 1024)} MB.`
+    );
   }
 };
 
@@ -60,6 +63,14 @@ const parseTechStack = (techStack) => {
   }
 
   return [];
+};
+
+const parseBoolean = (value, fallback = false) => {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  return value === true || value === "true";
 };
 
 const uploadImages = async (files, folder) => {
@@ -98,16 +109,42 @@ const uploadVideo = async (file) => {
   return uploaded?.url;
 };
 
-// GET all projects
+// GET projects
+// Default: return all projects for the full portfolio.
+// Homepage: /projects?showOnHome=true&limit=3
 export const getProjects = async (req, res) => {
   try {
-    const projects = await Project.find().sort({
+    const filter = {};
+
+    if (req.query.showOnHome === "true") {
+      filter.$or = [
+        { showOnHome: true },
+        { showOnHome: { $exists: false } },
+      ];
+    }
+
+    // Preserve existing featured filtering.
+    if (req.query.featured === "true") {
+      filter.featured = true;
+    }
+
+    let query = Project.find(filter).sort({
       order: 1,
       createdAt: -1,
     });
 
+    const limit = Number.parseInt(req.query.limit, 10);
+
+    if (Number.isInteger(limit) && limit > 0) {
+      query = query.limit(Math.min(limit, 100));
+    }
+
+    const projects = await query;
+
     res.json(projects);
   } catch (err) {
+    console.error("Get projects error:", err);
+
     res.status(500).json({
       message: "Server error",
       error: err.message,
@@ -148,6 +185,7 @@ export const createProject = async (req, res) => {
       githubLink,
       liveLink,
       featured,
+      showOnHome,
       order,
       projectType,
       videoSource,
@@ -160,7 +198,8 @@ export const createProject = async (req, res) => {
       });
     }
 
-    const finalProjectType = projectType === "video" ? "video" : "image";
+    const finalProjectType =
+      projectType === "video" ? "video" : "image";
 
     const finalVideoSource =
       videoSource === "external" ? "external" : "upload";
@@ -198,6 +237,7 @@ export const createProject = async (req, res) => {
     const uploadedThumbnail = await uploadThumbnail(thumbnailFile);
 
     const downloadFileObj = getFile(req, "downloadFile");
+
     let downloadFileUrl;
     let downloadFileName;
 
@@ -221,19 +261,26 @@ export const createProject = async (req, res) => {
       githubLink,
       liveLink,
       images: uploadedImages,
+
       projectType: finalProjectType,
-      videoSource: finalProjectType === "video" ? finalVideoSource : "upload",
+      videoSource:
+        finalProjectType === "video" ? finalVideoSource : "upload",
+
       videoUrl:
         finalProjectType === "video"
           ? finalVideoSource === "external"
             ? videoUrl.trim()
             : uploadedVideo
           : undefined,
+
       thumbnail: uploadedThumbnail,
       downloadFile: downloadFileUrl,
       downloadFileName,
-      featured: featured === "true" || featured === true,
-      order: order ? Number(order) : 0,
+
+      featured: parseBoolean(featured, false),
+      showOnHome: parseBoolean(showOnHome, true),
+
+      order: order !== undefined && order !== "" ? Number(order) : 0,
     });
 
     res.status(201).json(project);
@@ -269,6 +316,7 @@ export const updateProject = async (req, res) => {
       githubLink,
       liveLink,
       featured,
+      showOnHome,
       order,
       removeImages,
       projectType,
@@ -288,15 +336,20 @@ export const updateProject = async (req, res) => {
     if (liveLink !== undefined) project.liveLink = liveLink;
 
     if (featured !== undefined) {
-      project.featured = featured === "true" || featured === true;
+      project.featured = parseBoolean(featured);
     }
 
-    if (order !== undefined) {
+    if (showOnHome !== undefined) {
+      project.showOnHome = parseBoolean(showOnHome);
+    }
+
+    if (order !== undefined && order !== "") {
       project.order = Number(order);
     }
 
     if (projectType !== undefined) {
-      project.projectType = projectType === "video" ? "video" : "image";
+      project.projectType =
+        projectType === "video" ? "video" : "image";
     }
 
     if (videoSource !== undefined) {
@@ -304,7 +357,8 @@ export const updateProject = async (req, res) => {
         videoSource === "external" ? "external" : "upload";
     }
 
-    if (videoUrl !== undefined) {
+    // Do not clear an existing video URL if the form sends an empty value.
+    if (videoUrl !== undefined && videoUrl.trim() !== "") {
       project.videoUrl = videoUrl.trim();
     }
 
@@ -338,13 +392,21 @@ export const updateProject = async (req, res) => {
     const downloadFileObj = getFile(req, "downloadFile");
 
     if (videoFile) {
-      project.videoUrl = await uploadVideo(videoFile);
-      project.projectType = "video";
-      project.videoSource = "upload";
+      const uploadedVideo = await uploadVideo(videoFile);
+
+      if (uploadedVideo) {
+        project.videoUrl = uploadedVideo;
+        project.projectType = "video";
+        project.videoSource = "upload";
+      }
     }
 
     if (thumbnailFile) {
-      project.thumbnail = await uploadThumbnail(thumbnailFile);
+      const uploadedThumbnail = await uploadThumbnail(thumbnailFile);
+
+      if (uploadedThumbnail) {
+        project.thumbnail = uploadedThumbnail;
+      }
     }
 
     if (downloadFileObj) {
