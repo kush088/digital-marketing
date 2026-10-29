@@ -218,7 +218,7 @@
   line-height: 1;
 }
 
-/* Secondary GitHub button */
+/* Secondary GitHub Button */
 
 .project-detail-live-action .project-detail-github-link,
 .project-detail-actions .project-detail-github-button {
@@ -241,6 +241,7 @@
 
 /* =========================================
    MAIN PROJECT MEDIA
+   Images remain fully visible without cropping.
 ========================================= */
 
 .project-detail-media {
@@ -252,7 +253,30 @@
   background: #f0efe9;
 }
 
-.project-detail-media img,
+/* Main images */
+
+.project-detail-media > .project-detail-image {
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #f0efe9;
+}
+
+.project-detail-media > .project-detail-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 650px;
+  aspect-ratio: auto;
+  object-fit: contain;
+  object-position: center;
+  background: #f0efe9;
+}
+
+/* Video and embedded media */
+
 .project-detail-media video,
 .project-detail-media iframe {
   display: block;
@@ -261,14 +285,6 @@
   aspect-ratio: 16 / 9;
   border: 0;
   object-fit: contain;
-  background: #f0efe9;
-}
-
-.project-detail-media img {
-  height: auto;
-}
-
-.project-detail-media video {
   background: #171717;
 }
 
@@ -286,6 +302,8 @@
   border: 0;
   object-fit: contain;
 }
+
+/* Media fallback */
 
 .project-detail-media-fallback {
   display: flex;
@@ -319,6 +337,7 @@
 .project-detail-gallery {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 18px;
   width: 100%;
 }
@@ -332,21 +351,30 @@
   background: var(--detail-paper);
 }
 
-.project-detail-image img {
+/* Fit the complete image inside its box */
+
+.project-detail-gallery .project-detail-image img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  height: auto;
+  max-height: 650px;
+  aspect-ratio: auto;
+  object-fit: contain;
+  object-position: center;
+  background: #ffffff;
   transition: transform 0.3s ease;
 }
 
-.project-detail-image:hover img {
-  transform: scale(1.02);
+.project-detail-gallery .project-detail-image:hover img {
+  transform: scale(1.01);
 }
+
+/* Support for alternate gallery class names */
 
 .project-detail-gallery-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 18px;
 }
 
@@ -362,13 +390,17 @@
 .project-detail-gallery-item img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  height: auto;
+  max-height: 650px;
+  aspect-ratio: auto;
+  object-fit: contain;
+  object-position: center;
+  background: #ffffff;
   transition: transform 0.3s ease;
 }
 
 .project-detail-gallery-item:hover img {
-  transform: scale(1.02);
+  transform: scale(1.01);
 }
 
 /* =========================================
@@ -386,6 +418,7 @@
   justify-content: center;
   gap: 12px;
   min-height: 44px;
+  margin-top: 20px;
   padding: 0 17px;
   border: 1px solid var(--detail-ink);
   border-radius: 4px;
@@ -650,10 +683,7 @@
     margin-top: 30px;
   }
 
-  .project-detail-gallery {
-    gap: 13px;
-  }
-
+  .project-detail-gallery,
   .project-detail-gallery-grid {
     gap: 13px;
   }
@@ -750,7 +780,6 @@
     margin-top: 25px;
   }
 
-  .project-detail-media img,
   .project-detail-media video,
   .project-detail-media iframe,
   .project-detail-video iframe,
