@@ -11,6 +11,7 @@ export default function ProjectCard({
 
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
 
   const {
     _id,
@@ -33,28 +34,45 @@ export default function ProjectCard({
   }, [apiBase]);
 
   const getFileUrl = (file) => {
-    if (!file) return "";
+    if (!file || typeof file !== "string") return "";
 
-    if (/^https?:\/\//i.test(file)) {
-      return file;
+    const trimmedFile = file.trim();
+
+    if (!trimmedFile) return "";
+
+    if (/^https?:\/\//i.test(trimmedFile)) {
+      return trimmedFile;
     }
 
-    return `${backendBase}${file.startsWith("/") ? file : `/${file}`}`;
+    return `${backendBase}${trimmedFile.startsWith("/") ? trimmedFile : `/${trimmedFile}`}`;
   };
 
   const isVideo = projectType === "video";
 
-  const imageFile = isVideo
-    ? thumbnail || images[0]
-    : images[0] || thumbnail;
+  // Try the image project's thumbnail first, then its gallery images.
+  // For video projects, keep the thumbnail as the primary cover.
+  const imageCandidates = useMemo(() => {
+    const candidates = isVideo
+      ? [thumbnail, ...(Array.isArray(images) ? images : [])]
+      : [thumbnail, ...(Array.isArray(images) ? images : [])];
 
-  const imageUrl = getFileUrl(imageFile);
+    return [...new Set(candidates.map(getFileUrl).filter(Boolean))];
+  }, [isVideo, thumbnail, images, backendBase]);
 
-  // Only direct uploaded video files can play inside the card.
+  const imageUrl = imageCandidates[imageIndex] || "";
+
   const playableVideoUrl =
     isVideo && videoSource === "upload" && videoUrl
       ? getFileUrl(videoUrl)
       : "";
+
+  const handleImageError = () => {
+    setImageIndex((currentIndex) =>
+      currentIndex < imageCandidates.length - 1
+        ? currentIndex + 1
+        : currentIndex
+    );
+  };
 
   const handleMouseEnter = async () => {
     if (!playableVideoUrl || !videoRef.current) return;
@@ -64,7 +82,6 @@ export default function ProjectCard({
       await videoRef.current.play();
       setIsPlaying(true);
     } catch (error) {
-      // The user can still open the project to watch the video.
       console.debug("Hover video playback unavailable:", error);
       setIsPlaying(false);
     }
@@ -80,7 +97,6 @@ export default function ProjectCard({
 
   return (
     <article className={`project-card ${isVideo ? "project-card-video" : ""}`}>
-      {/* IMAGE AND VIDEO COVER */}
       <Link
         to={`/projects/${_id}`}
         className={`project-card-image ${isPlaying ? "is-playing" : ""}`}
@@ -92,13 +108,12 @@ export default function ProjectCard({
       >
         {imageUrl && (
           <img
+            key={imageUrl}
             className="project-card-cover"
             src={imageUrl}
             alt={title || "Project thumbnail"}
             loading="lazy"
-            onError={(event) => {
-              event.currentTarget.style.opacity = "0";
-            }}
+            onError={handleImageError}
           />
         )}
 
@@ -125,15 +140,11 @@ export default function ProjectCard({
           </div>
         )}
 
-        {/* SUBTLE THEME OVERLAY */}
         <div className="project-card-image-overlay" />
 
-        {/* CATEGORY AND FEATURED LABELS */}
         <div className="project-card-top">
           {category && (
-            <span className="project-card-category">
-              {category}
-            </span>
+            <span className="project-card-category">{category}</span>
           )}
 
           {featured && (
@@ -143,7 +154,6 @@ export default function ProjectCard({
           )}
         </div>
 
-        {/* VIDEO PLAY INDICATOR */}
         {isVideo && !isPlaying && (
           <div className="project-card-play" aria-hidden="true">
             <span>▶</span>
@@ -151,12 +161,9 @@ export default function ProjectCard({
         )}
 
         {isVideo && isPlaying && (
-          <span className="project-card-playing-label">
-            NOW PLAYING
-          </span>
+          <span className="project-card-playing-label">NOW PLAYING</span>
         )}
 
-        {/* COVER FOOTER */}
         <div className="project-card-image-footer">
           <span className="project-card-image-type">
             {isVideo ? "VIDEO" : "PROJECT CASE STUDY"}
@@ -166,7 +173,6 @@ export default function ProjectCard({
         </div>
       </Link>
 
-      {/* PROJECT INFORMATION */}
       <div className="project-card-body">
         {techStack.length > 0 && (
           <div className="project-card-tags">
@@ -188,25 +194,14 @@ export default function ProjectCard({
         )}
 
         <h3 className="project-card-title">
-          <Link to={`/projects/${_id}`}>
-            {title}
-          </Link>
+          <Link to={`/projects/${_id}`}>{title}</Link>
         </h3>
 
-        <p className="project-card-summary">
-          {description}
-        </p>
+        <p className="project-card-summary">{description}</p>
 
-        {/* ACTIONS */}
         <div className="project-card-actions">
-          <Link
-            to={`/projects/${_id}`}
-            className="project-card-view"
-          >
-            <span>
-              {isVideo ? "Watch Project" : "Explore Project"}
-            </span>
-
+          <Link to={`/projects/${_id}`} className="project-card-view">
+            <span>{isVideo ? "Watch Project" : "Explore Project"}</span>
             <span className="project-card-view-arrow">→</span>
           </Link>
 
