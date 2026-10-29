@@ -1,7 +1,7 @@
 /* ==========================================
    KUSH PAREKH — PROJECT CARD
    Premium Editorial Design
-   Homepage Color Theme
+   Existing Color Theme Preserved
 ========================================== */
 
 .project-card {
@@ -15,6 +15,7 @@
   --card-line: #e7e9e1;
 
   position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -51,6 +52,7 @@
   background: var(--card-soft);
   color: #ffffff;
   text-decoration: none;
+
   isolation: isolate;
 }
 
@@ -58,6 +60,7 @@
 .project-card-hover-video {
   position: absolute;
   inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -68,12 +71,16 @@
     opacity 200ms ease;
 }
 
+/* FIX: Keep the image inside the image container,
+   rather than behind its background. */
 .project-card-cover {
-  z-index: -1;
+  z-index: 0;
+  opacity: 1;
+  visibility: visible;
 }
 
 .project-card-hover-video {
-  z-index: 0;
+  z-index: 1;
   opacity: 0;
   pointer-events: none;
 }
@@ -90,11 +97,13 @@
   opacity: 0;
 }
 
-/* Image overlay */
+/* ==========================================
+   IMAGE OVERLAY
+========================================== */
 
 .project-card-image-overlay {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   inset: 0;
 
   background: linear-gradient(
@@ -108,7 +117,9 @@
   pointer-events: none;
 }
 
-/* Image placeholder */
+/* ==========================================
+   IMAGE PLACEHOLDER
+========================================== */
 
 .project-card-placeholder {
   position: absolute;
@@ -143,7 +154,7 @@
 
 .project-card-top {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   top: 17px;
   right: 17px;
   left: 17px;
@@ -199,7 +210,7 @@
 
 .project-card-play {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   top: 50%;
   left: 50%;
 
@@ -238,7 +249,7 @@
 
 .project-card-playing-label {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   top: 50%;
   left: 50%;
 
@@ -263,7 +274,7 @@
 
 .project-card-image-footer {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
   right: 18px;
   bottom: 17px;
   left: 18px;
@@ -451,7 +462,7 @@
   color: #ffffff !important;
 }
 
-/* Force both button text and arrow to remain white */
+/* Keep button text and arrow white */
 
 .project-card .project-card-view span,
 .project-card .project-card-view:hover span,
@@ -643,7 +654,9 @@
   }
 }
 
-/* Respect reduced-motion preferences */
+/* ==========================================
+   REDUCED MOTION
+========================================== */
 
 @media (prefers-reduced-motion: reduce) {
   .project-card,
