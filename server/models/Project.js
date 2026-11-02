@@ -1,101 +1,32 @@
-
 import mongoose from "mongoose";
 
 const projectSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    description: {
-      type: String,
-      required: true,
-    },
-
-    category: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    techStack: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-
-    // Project images
+    title: { type: String, required: true, trim: true },
+    shortDescription: { type: String, default: "", trim: true },
+    description: { type: String, required: true },
+    category: { type: String, default: "Full-Stack", trim: true },
+    projectRole: { type: String, default: "", trim: true },
+    keyFeatures: [{ type: String, trim: true }],
+    techStack: [{ type: String, trim: true }],
     images: [{ type: String }],
+    githubLink: { type: String, trim: true },
+    liveLink: { type: String, trim: true },
+    downloadFile: { type: String },
+    downloadFileName: { type: String },
+    featured: { type: Boolean, default: false },
+    order: { type: Number, default: 0 },
 
-    // Image or video project
-    projectType: {
-      type: String,
-      enum: ["image", "video"],
-      default: "image",
-    },
-
-    // Uploaded video or external video URL
-    videoSource: {
-      type: String,
-      enum: ["upload", "external"],
-      default: "upload",
-    },
-
-    videoUrl: {
-      type: String,
-      trim: true,
-    },
-
-    // Video thumbnail
-    thumbnail: {
-      type: String,
-      trim: true,
-    },
-
-    // Project links
-    githubLink: {
-      type: String,
-      trim: true,
-    },
-
-    liveLink: {
-      type: String,
-      trim: true,
-    },
-
-    // Downloadable case-study document
-    downloadFile: {
-      type: String,
-    },
-
-    downloadFileName: {
-      type: String,
-    },
-
-    // Existing featured-project functionality
-    featured: {
-      type: Boolean,
-      default: false,
-    },
-
-    // Controls homepage visibility independently of featured
-    showOnHome: {
-      type: Boolean,
-      default: true,
-    },
-
-    // Project display order
-    order: {
-      type: Number,
-      default: 0,
-    },
+    // Legacy fields retained so existing portfolio documents remain readable.
+    summary: { type: String, default: "" },
+    image: { type: String, default: "" },
+    tags: [{ type: String }],
+    result: { type: String, default: "" },
+    client: { type: String, default: "" },
+    timeline: { type: String, default: "" },
+    downloadUrl: { type: String, default: "" },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 export default mongoose.model("Project", projectSchema);

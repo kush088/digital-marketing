@@ -1,74 +1,41 @@
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 
-const storage = multer.memoryStorage();
+const uploadDir = path.resolve("uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-const imageExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
-const documentExtensions = [".pdf", ".zip", ".rar", ".7z"];
-const videoExtensions = [".mp4", ".webm", ".mov", ".m4v"];
-
-const MAX_IMAGE_SIZE = 25 * 1024 * 1024; // 25 MB
-const MAX_DOCUMENT_SIZE = 25 * 1024 * 1024; // 25 MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100 MB
-
-const allowedDocumentMimeTypes = [
-  "application/pdf",
-  "application/zip",
-  "application/x-zip-compressed",
-  "application/x-rar-compressed",
-  "application/vnd.rar",
-  "application/x-7z-compressed",
-  "application/octet-stream",
-];
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `${unique}${path.extname(file.originalname)}`);
+  },
+});
 
 const fileFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname).toLowerCase();
-  const mimeType = file.mimetype || "";
+  const imageTypes = /jpeg|jpg|png|webp|gif/;
+  const isImageField = file.fieldname === "images";
+  const isDownloadField = file.fieldname === "downloadFile";
 
-  if (imageExtensions.includes(ext)) {
-    if (!mimeType.startsWith("image/")) {
-      return cb(new Error("Invalid image file type."));
-    }
-
-    return cb(null, true);
+  if (isImageField) {
+    const ext = imageTypes.test(path.extname(file.originalname).toLowerCase());
+    if (!ext) return cb(new Error("Only image files are allowed for the images field"));
   }
 
-  if (videoExtensions.includes(ext)) {
-    if (!mimeType.startsWith("video/")) {
-      return cb(new Error("Invalid video file type."));
-    }
-
-    return cb(null, true);
+  if (isDownloadField) {
+    const allowed = /zip|pdf|rar|7z/;
+    const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+    if (!ext) return cb(new Error("Download file must be a .zip, .rar, .7z or .pdf"));
   }
 
-  if (documentExtensions.includes(ext)) {
-    if (!allowedDocumentMimeTypes.includes(mimeType)) {
-      return cb(new Error("Invalid document file type."));
-    }
-
-    return cb(null, true);
-  }
-
-  return cb(
-    new Error(
-      "Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, GIF, PDF, ZIP, RAR, 7Z, MP4, WEBM, MOV and M4V."
-    )
-  );
+  cb(null, true);
 };
 
 const upload = multer({
   storage,
   fileFilter,
-  limits: {
-    fileSize: MAX_VIDEO_SIZE,
-    files: 11,
-  },
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
 });
-
-export {
-  MAX_IMAGE_SIZE,
-  MAX_DOCUMENT_SIZE,
-  MAX_VIDEO_SIZE,
-};
 
 export default upload;
